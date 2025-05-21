@@ -1,0 +1,39 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Grid {
+  id          String   @id @default(cuid())
+  name        String   // Can be customized (e.g. "Top Shelf", "Drawer 1")
+  columns     Int      @default(15)
+  rows        Int      @default(12)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  markers     Marker[]
+}
+
+model Marker {
+  id           String   @id @default(cuid())
+  markerNumber String   @unique
+  colorName    String
+  colorHex     String   @default("#000000") // Hex color code for the marker
+  brand        String   @default("") // Marker brand
+  quantity     Int      @default(1) // Number of markers of this type
+  gridId       String   // Foreign key to Grid
+  grid         Grid     @relation(fields: [gridId], references: [id])
+  columnNumber Int      // 1-15 (or whatever the grid size is)
+  rowNumber    Int      // 1-12 (or whatever the grid size is)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
