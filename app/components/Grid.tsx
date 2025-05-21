@@ -90,13 +90,13 @@ const Grid: React.FC<GridProps> = ({ grid, highlightedMarker, highlightedPositio
                 return (
                   <div 
                     key={`${row}-${col}`}
-                    className={`h-11 w-11 border border-gray-200 flex items-center justify-center rounded-md m-0.5 transition-all ${
+                    className={`h-11 w-11 border border-gray-200 flex items-center justify-center rounded-md m-0.5 transition-all tooltip-container ${
                       isHighlighted ? `${gridColor.highlight}` : 'hover:bg-gray-100'
                     }`}
                   >
                     {isHighlighted && (
                       <motion.div 
-                        className="relative w-6 h-6 rounded-full flex items-center justify-center"
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-xs relative"
                         style={{ 
                           backgroundColor: highlightedMarker?.colorHex || 'white',
                           color: getContrastingTextColor(highlightedMarker?.colorHex || '#FFFFFF')
@@ -106,7 +106,7 @@ const Grid: React.FC<GridProps> = ({ grid, highlightedMarker, highlightedPositio
                         transition={{ type: "spring", stiffness: 500, delay: 0.1 }}
                       >
                         <motion.span 
-                          className="absolute inset-0 rounded-full opacity-50"
+                          className="absolute inset-0 rounded-full opacity-50 z-0"
                           style={{ backgroundColor: highlightedMarker?.colorHex || 'white' }}
                           animate={{ 
                             scale: [1, 1.5, 1],
@@ -118,9 +118,18 @@ const Grid: React.FC<GridProps> = ({ grid, highlightedMarker, highlightedPositio
                             repeatType: "reverse"
                           }}
                         />
-                        <span className="relative text-xs">●</span>
+                        {highlightedMarker && (
+                          <span className="z-10 relative">{highlightedMarker.markerNumber}</span>
+                        )}
                       </motion.div>
                     )}
+                    {/* Always show tooltip on hover */}
+                    <div className="tooltip">
+                      {isHighlighted && highlightedMarker ? 
+                        `${highlightedMarker.markerNumber} - ${highlightedMarker.colorName} (${highlightedMarker.brand})` : 
+                        `Position: ${col}, ${row}`
+                      }
+                    </div>
                   </div>
                 );
               })}

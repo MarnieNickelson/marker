@@ -12,7 +12,7 @@ Follow these steps to get your Marker Tracker application up and running:
 
 2. **Push the database schema:**
    ```bash
-   cd /Users/marnienickelson/Documents/marker/marker-tracker
+   cd /Users/marnienickelson/Documents/marker
    npm run db:push
    ```
 

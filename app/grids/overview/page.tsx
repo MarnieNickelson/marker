@@ -283,20 +283,25 @@ const GridWithAllMarkers = ({ grid, markers }: { grid: GridType; markers: Marker
                 return (
                   <div 
                     key={`${row}-${col}`}
-                    className={`h-11 w-11 border border-gray-200 flex items-center justify-center rounded-md m-0.5 transition-all hover:scale-105`}
+                    className={`h-11 w-11 border border-gray-200 flex items-center justify-center rounded-md m-0.5 transition-all hover:scale-105 tooltip-container`}
                   >
                     {marker ? (
                       <div 
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-xs"
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-xs relative"
                         style={{ 
                           backgroundColor: marker.colorHex,
                           color: getContrastTextColor(marker.colorHex)
                         }}
-                        title={`${marker.markerNumber} - ${marker.colorName} (${marker.brand})`}
                       >
-                        <span>{marker.markerNumber}</span>
+                        <span className="z-10 relative">{marker.markerNumber}</span>
                       </div>
                     ) : null}
+                    <div className="tooltip">
+                      {marker ? 
+                        `${marker.markerNumber} - ${marker.colorName} (${marker.brand})` : 
+                        `Position: ${col}, ${row}`
+                      }
+                    </div>
                   </div>
                 );
               })}

@@ -15,7 +15,7 @@ This document provides instructions for deploying the Marker Tracker application
 1. **Clone the repository**
    ```bash
    git clone <your-repository-url>
-   cd marker-tracker
+   cd marker
    ```
 
 2. **Install dependencies**
@@ -48,7 +48,7 @@ This document provides instructions for deploying the Marker Tracker application
    For keeping your application running, consider using PM2:
    ```bash
    npm install -g pm2
-   pm2 start npm --name "marker-tracker" -- start
+   pm2 start npm --name "marker" -- start
    ```
 
 ### Option 2: Docker Deployment
