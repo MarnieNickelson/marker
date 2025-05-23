@@ -189,8 +189,8 @@ export default function MarkersPage() {
   const getColorClass = (colorName: string) => {
     const lowerColor = colorName.toLowerCase();
     
-    if (lowerColor.includes('red')) return 'bg-red-100 text-red-800 border-red-200';
-    if (lowerColor.includes('blue')) return 'bg-blue-100 text-blue-800 border-blue-200';
+    if (lowerColor.includes('red')) return 'bg-secondary-100 text-red-800 border-red-200';
+    if (lowerColor.includes('blue')) return 'bg-primary-100 text-blue-800 border-blue-200';
     if (lowerColor.includes('green')) return 'bg-green-100 text-green-800 border-green-200';
     if (lowerColor.includes('yellow')) return 'bg-yellow-100 text-yellow-800 border-yellow-200';
     if (lowerColor.includes('purple')) return 'bg-purple-100 text-purple-800 border-purple-200';
@@ -217,7 +217,7 @@ export default function MarkersPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
           >
-            All Markers
+            Markers
           </motion.h1>
           
           <motion.div
@@ -227,7 +227,7 @@ export default function MarkersPage() {
           >
             <Link
               href="/add"
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -268,7 +268,7 @@ export default function MarkersPage() {
               <p className="text-gray-500 mb-6">Start by adding your first marker</p>
               <Link 
                 href="/add" 
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-md"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -330,7 +330,7 @@ export default function MarkersPage() {
                         key={marker.id}
                         className={`p-3 mt-1 mb-1 ml-1 cursor-pointer rounded-lg border transition-all ${
                           selectedMarker?.id === marker.id 
-                            ? 'ring-2 ring-blue-500 border-blue-300 bg-blue-50' 
+                            ? 'ring-2 ring-blue-500 border-blue-300 bg-primary-50' 
                             : 'hover:bg-gray-50 border-gray-50'
                         }`}
                         onClick={() => handleSelectMarker(marker)}
@@ -401,7 +401,7 @@ export default function MarkersPage() {
                       transition={{ duration: 0.3 }}
                     >
                       <div className="text-center">
-                        <div className="bg-red-100 w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center">
+                        <div className="bg-secondary-100 w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
@@ -418,7 +418,7 @@ export default function MarkersPage() {
                           </button>
                           <button
                             onClick={handleConfirmDelete}
-                            className="px-4 py-2 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                            className="px-4 py-2 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-secondary-600 hover:bg-secondary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
                           >
                             Delete
                           </button>
@@ -473,7 +473,7 @@ export default function MarkersPage() {
                                 {sameMarkers.map((sameMarker) => (
                                   <div 
                                     key={sameMarker.id} 
-                                    className={`text-xs p-1.5 rounded border ${selectedMarker?.id === sameMarker.id ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-100'}`}
+                                    className={`text-xs p-1.5 rounded border ${selectedMarker?.id === sameMarker.id ? 'bg-primary-50 border-blue-200' : 'bg-white border-gray-100'}`}
                                   >
                                     <div className="flex items-center justify-between">
                                       <span className="font-medium">
@@ -507,7 +507,7 @@ export default function MarkersPage() {
                           
                           <button 
                             onClick={handleEditClick}
-                            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors"
+                            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-blue-700 bg-primary-50 border border-blue-200 rounded-md hover:bg-primary-100 transition-colors"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -517,7 +517,7 @@ export default function MarkersPage() {
                           
                           <button 
                             onClick={handleDeleteConfirmClick}
-                            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition-colors"
+                            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-700 bg-secondary-50 border border-red-200 rounded-md hover:bg-secondary-100 transition-colors"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -565,7 +565,7 @@ export default function MarkersPage() {
                                 .map(marker => (
                                   <div 
                                     key={marker.id}
-                                    className="p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-colors"
+                                    className="p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-primary-50 cursor-pointer transition-colors"
                                     onClick={() => setSelectedMarker(marker)}
                                   >
                                     <div className="flex justify-between items-center">

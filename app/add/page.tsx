@@ -59,7 +59,7 @@ export default function AddMarkerPage() {
         <h1 className="text-3xl font-bold text-blue-800 mb-6">Add New Marker</h1>
         
         {searchParams.get('markerNumber') && (
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="mb-6 p-4 bg-primary-50 border border-blue-200 rounded-lg">
             <h2 className="font-medium text-blue-800 mb-1">Adding Another Location</h2>
             <p className="text-sm text-blue-600">
               You're adding another location for marker <strong>{searchParams.get('markerNumber')}</strong> ({searchParams.get('colorName')}).
@@ -119,7 +119,7 @@ export default function AddMarkerPage() {
                     {grids.map((grid) => (
                       <div 
                         key={grid.id}
-                        className="p-3 rounded-lg border border-gray-200 bg-blue-600"
+                        className="p-3 rounded-lg border border-gray-200 bg-primary-600"
                       >
                         <h3 className="font-medium text-white mb-1">{grid.name}</h3>
                         <div className="flex items-center text-sm text-white">

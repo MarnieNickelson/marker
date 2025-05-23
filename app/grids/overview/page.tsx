@@ -132,7 +132,7 @@ export default function GridOverviewPage() {
             <p className="text-xl text-gray-500 mb-4">No storage grids defined yet</p>
             <a
               href="/grids"
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
             >
               Create Your First Grid
             </a>
@@ -141,7 +141,7 @@ export default function GridOverviewPage() {
           <div className="grid md:grid-cols-[300px_1fr] gap-6">
             {/* Grid selection sidebar */}
             <div className="bg-white rounded-xl shadow-md overflow-hidden">
-              <div className="p-4 bg-blue-600 text-white">
+              <div className="p-4 bg-primary-600 text-white">
                 <h2 className="text-lg font-semibold">Your Grids</h2>
               </div>
               <div className="divide-y divide-gray-100">
@@ -150,8 +150,8 @@ export default function GridOverviewPage() {
                   return (
                     <button
                       key={grid.id}
-                      className={`w-full text-left p-4 hover:bg-blue-500 transition-colors group ${
-                        selectedGrid === grid.id ? 'bg-blue-600' : ''
+                      className={`w-full text-left p-4 hover:bg-primary-500 transition-colors group ${
+                        selectedGrid === grid.id ? 'bg-primary-600' : ''
                       }`}
                       onClick={() => setSelectedGrid(grid.id)}
                     >
@@ -239,7 +239,7 @@ const GridWithAllMarkers = ({ grid, markers }: { grid: GridType; markers: Marker
   const gridColor = {
     bg: isEven ? 'bg-primary-50' : 'bg-accent-50',
     border: isEven ? 'border-primary-200' : 'border-accent-200',
-    header: isEven ? 'bg-blue-600 text-white' : 'bg-accent-600 text-white',
+    header: isEven ? 'bg-primary-600 text-white' : 'bg-accent-600 text-white',
   };
 
   // Create grid template columns style

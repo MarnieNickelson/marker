@@ -138,7 +138,7 @@ export default function GridsManagementPage() {
           </div>
           <button
             onClick={() => handleOpenModal()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2 shadow-md"
+            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2 shadow-md"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -162,7 +162,7 @@ export default function GridsManagementPage() {
             <p className="text-xl text-gray-500 mb-4">No storage grids defined yet</p>
             <button
               onClick={() => handleOpenModal()}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+              className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
             >
               Create Your First Grid
             </button>
@@ -177,7 +177,7 @@ export default function GridsManagementPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3 }}
               >
-                <div className={`p-4 ${grid.id.charCodeAt(0) % 2 === 0 ? 'bg-blue-600' : 'bg-accent-600'} text-white flex justify-between items-center`}>
+                <div className={`p-4 ${grid.id.charCodeAt(0) % 2 === 0 ? 'bg-primary-600' : 'bg-accent-600'} text-white flex justify-between items-center`}>
                   <h3 className="text-lg font-semibold text-white">{grid.name}</h3>
                   <span className="text-sm bg-white/20 px-2 py-0.5 rounded">
                     {grid.columns} x {grid.rows}
@@ -312,7 +312,7 @@ export default function GridsManagementPage() {
                       
                       <button
                         type="submit"
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-primary-700"
+                        className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                       >
                         {editingGrid ? 'Update Grid' : 'Create Grid'}
                       </button>

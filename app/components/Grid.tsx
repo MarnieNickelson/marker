@@ -39,7 +39,7 @@ const Grid: React.FC<GridProps> = ({ grid, highlightedMarker, highlightedPositio
   const gridColor = {
     bg: isEven ? 'bg-primary-50' : 'bg-accent-50',
     border: isEven ? 'border-primary-200' : 'border-accent-200',
-    header: isEven ? 'bg-blue-600 text-white' : 'bg-accent-600 text-white',
+    header: isEven ? 'bg-primary-600 text-white' : 'bg-accent-600 text-white',
     highlight: isEven ? 'bg-primary-400 shadow-lg shadow-primary-100' : 'bg-accent-400 shadow-lg shadow-accent-100',
   };
 

@@ -255,7 +255,7 @@ const MarkerForm: React.FC<MarkerFormProps> = ({ onMarkerAdded, grids: providedG
               </svg>
             </div>
           ) : grids.length === 0 ? (
-            <div className="py-3 px-4 bg-red-50 text-red-700 rounded-lg border border-red-200">
+            <div className="py-3 px-4 bg-secondary-50 text-red-700 rounded-lg border border-red-200">
               No storage grids available. Please create a grid first.
             </div>
           ) : (
@@ -316,7 +316,7 @@ const MarkerForm: React.FC<MarkerFormProps> = ({ onMarkerAdded, grids: providedG
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
+            className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors"
           >
             {loading ? (
               <>

@@ -20,14 +20,6 @@ export default function Home() {
             Keep track of your markers and find them quickly in your storage grids. 
             This app helps you organize your markers by their number, color, brand, and exact storage location.
           </p>
-          
-          <div className="p-4 bg-green-50 border border-green-200 rounded-lg mb-6">
-            <h2 className="font-medium text-green-800 mb-1">New Feature!</h2>
-            <p className="text-sm text-green-700">
-              You can now add the same marker in multiple locations. The system will track all instances 
-              of the same marker (same number, color, and brand) across different storage positions.
-            </p>
-          </div>
         </motion.div>
 
         <motion.div 
@@ -38,8 +30,7 @@ export default function Home() {
         >
           <Link
             href="/add"
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-md"
-            style={{ backgroundColor: '#dc2626' }}
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-md"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -48,13 +39,12 @@ export default function Home() {
           </Link>
           <Link
             href="/markers"
-            className="flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md"
-            style={{ backgroundColor: '#0284c7' }}
+            className="flex items-center justify-center gap-2 px-6 py-3 bg-secondary-600 text-white rounded-lg hover:bg-secondary-700 transition-colors shadow-md"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
-            <span>View All Markers</span>
+            <span>View Markers</span>
           </Link>
           <Link
             href="/grids"

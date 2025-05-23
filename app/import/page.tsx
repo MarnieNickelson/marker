@@ -195,7 +195,7 @@ export default function ImportPage() {
             <div className="bg-yellow-50 p-6 rounded-lg border border-yellow-200">
               <h3 className="text-lg font-medium text-yellow-800 mb-2">No Storage Grids Available</h3>
               <p className="text-yellow-700 mb-4">You need to create at least one storage grid before importing markers.</p>
-              <a href="/grids" className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-primary-700">
+              <a href="/grids" className="inline-block px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
                 Create Storage Grids
               </a>
             </div>
@@ -227,7 +227,7 @@ G789,Forest Green,#228B22,Copic,3,${grids[0]?.name},8,2`}
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-blue-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 transition-colors"
+                  className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 transition-colors"
                 >
                   {isLoading ? (
                     <>
@@ -256,7 +256,7 @@ G789,Forest Green,#228B22,Copic,3,${grids[0]?.name},8,2`}
             {!loadingGrids && (
               <div className="space-y-3 mb-6">
                 {grids.map(grid => (
-                  <div key={grid.id} className="bg-blue-600 p-3 rounded-md border border-gray-200">
+                  <div key={grid.id} className="bg-primary-600 p-3 rounded-md border border-gray-200">
                     <div className="flex justify-between items-center">
                       <div>
                         <p className="font-medium text-white">{grid.name}</p>
