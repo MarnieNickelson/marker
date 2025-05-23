@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { Grid } from '../types/marker';
+import { Grid, Brand } from '../types/marker';
 import { useSearchParams } from 'next/navigation';
 
 interface MarkerFormProps {
@@ -13,17 +13,19 @@ interface MarkerFormProps {
 const MarkerForm: React.FC<MarkerFormProps> = ({ onMarkerAdded, grids: providedGrids, isAddingLocation = false }) => {
   const searchParams = useSearchParams();
   const [grids, setGrids] = useState<Grid[]>(providedGrids || []);
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [formData, setFormData] = useState({
     markerNumber: searchParams.get('markerNumber') || '',
     colorName: searchParams.get('colorName') || '',
     colorHex: searchParams.get('colorHex') || '#000000',
-    brand: searchParams.get('brand') || '',
+    brandId: searchParams.get('brandId') || '', // Changed from brand to brandId
     gridId: '',
     columnNumber: '',
     rowNumber: '',
   });
   const [loading, setLoading] = useState(false);
   const [loadingGrids, setLoadingGrids] = useState(!providedGrids);
+  const [loadingBrands, setLoadingBrands] = useState(true);
   
   // Fetch available grids if not provided
   useEffect(() => {
@@ -57,6 +59,27 @@ const MarkerForm: React.FC<MarkerFormProps> = ({ onMarkerAdded, grids: providedG
     
     fetchGrids();
   }, [providedGrids]);
+
+  // Fetch available brands
+  useEffect(() => {
+    const fetchBrands = async () => {
+      try {
+        const response = await fetch('/api/brands');
+        if (!response.ok) {
+          throw new Error('Failed to fetch brands');
+        }
+        const data = await response.json();
+        setBrands(data);
+      } catch (error) {
+        console.error('Error fetching brands:', error);
+        toast.error('Failed to load marker brands');
+      } finally {
+        setLoadingBrands(false);
+      }
+    };
+    
+    fetchBrands();
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -104,7 +127,7 @@ const MarkerForm: React.FC<MarkerFormProps> = ({ onMarkerAdded, grids: providedG
           markerNumber: '',
           colorName: '',
           colorHex: '#000000',
-          brand: '',
+          brandId: '', // Reset brandId 
           gridId: currentGridId,
           columnNumber: '',
           rowNumber: '',
@@ -223,23 +246,46 @@ const MarkerForm: React.FC<MarkerFormProps> = ({ onMarkerAdded, grids: providedG
           </div>
         </div>
 
-        {/* Brand field */}
+        {/* Brand dropdown */}
         <div>
-          <label htmlFor="brand" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="brandId" className="block text-sm font-medium text-gray-700 mb-1">
             Brand
           </label>
-          <input
-            type="text"
-            id="brand"
-            name="brand"
-            value={formData.brand}
-            onChange={handleChange}
-            disabled={isAddingLocation}
-            className={`block w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-primary-400 focus:border-primary-400 transition-colors ${
-              isAddingLocation ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''
-            }`}
-            placeholder="e.g. Copic, Prismacolor"
-          />
+          {loadingBrands ? (
+            <div className="py-3 px-4 bg-gray-50 rounded-lg flex items-center justify-center">
+              <svg className="animate-spin h-5 w-5 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </div>
+          ) : (
+            <div className="relative">
+              <select
+                id="brandId"
+                name="brandId"
+                value={formData.brandId}
+                onChange={handleChange}
+                disabled={isAddingLocation}
+                className={`block w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-primary-400 focus:border-primary-400 transition-colors ${
+                  isAddingLocation ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''
+                }`}
+              >
+                <option value="">Select a brand</option>
+                {brands.map(brand => (
+                  <option key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </option>
+                ))}
+              </select>
+              {!isAddingLocation && (
+                <div className="mt-1 text-xs text-blue-600">
+                  <a href="/brands" className="hover:underline">
+                    Manage brands
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Grid selection and position */}

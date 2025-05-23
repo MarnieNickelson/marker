@@ -158,6 +158,15 @@ const markerItems = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
       </svg>
     )
+  },
+  {
+    name: 'Marker Brands',
+    href: '/brands',
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+      </svg>
+    )
   }
 ];
 
@@ -196,7 +205,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   // Check if any marker routes are active
-  const isMarkerActive = pathname === '/markers' || pathname === '/add';
+  const isMarkerActive = pathname === '/markers' || pathname === '/add' || pathname === '/brands';
   
   // Check if any settings routes are active
   const isSettingsActive = pathname === '/grids/overview' || pathname === '/import' || pathname === '/stats';
@@ -372,47 +381,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       {/* Footer */}
       <footer className="bg-white border-t border-gray-200 mt-12">
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col md:flex-row items-center justify-between">
+          <div className="flex justify-center">
             <p className="text-gray-500 text-sm">
               Marker Tracker App © {new Date().getFullYear()}
             </p>
-            <div className="mt-3 md:mt-0 flex space-x-6">
-              <a 
-                href="http://localhost:3030" 
-                className="flex items-center text-sm bg-gray-700 text-white px-3 py-1 rounded-md hover:bg-gray-800"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <span>Running on port 3030</span>
-              </a>
-              <Link 
-                href="/markers" 
-                className="flex items-center text-sm bg-primary-600 text-white px-3 py-1 rounded-md hover:bg-primary-700"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                <span>Markers</span>
-              </Link>
-              <Link 
-                href="/add" 
-                className="flex items-center text-sm bg-green-600 text-white px-3 py-1 rounded-md hover:bg-accent-700"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                <span>Add New</span>
-              </Link>
-              <Link 
-                href="/grids/overview" 
-                className="flex items-center text-sm bg-purple-600 text-white px-3 py-1 rounded-md hover:bg-purple-700"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                </svg>
-                <span>Grid Overview</span>
-              </Link>
-            </div>
           </div>
         </div>
       </footer>

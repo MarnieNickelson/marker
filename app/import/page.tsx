@@ -207,9 +207,10 @@ export default function ImportPage() {
                 </label>
                 <div className="text-xs text-gray-500 mb-2">
                   <p>Format each line as:</p>
-                  <p className="font-mono bg-gray-50 p-1 mt-1 rounded">markerNumber,colorName,colorHex,brand,quantity,gridName,columnNumber,rowNumber</p>
-                  <p className="mt-1">Example: R123,Crimson Red,#FF0000,Copic,2,{grids[0]?.name},3,5</p>
+                  <p className="font-mono bg-gray-50 p-1 mt-1 rounded">markerNumber,colorName,colorHex,brand,gridName,columnNumber,rowNumber</p>
+                  <p className="mt-1">Example: R123,Crimson Red,#FF0000,Copic,{grids[0]?.name},3,5</p>
                   <p className="italic mt-1">Simplified format also supported: markerNumber,colorName,gridName,columnNumber,rowNumber</p>
+                  <p className="text-blue-600 mt-1">Brand can be either a brand name (will be created if it doesn't exist) or a brand ID</p>
                 </div>
                 <textarea
                   id="importText"
@@ -217,9 +218,9 @@ export default function ImportPage() {
                   value={importText}
                   onChange={(e) => setImportText(e.target.value)}
                   className="block w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-primary-400 focus:border-primary-400 transition-colors"
-                  placeholder={`R123,Crimson Red,#FF0000,Copic,2,${grids[0]?.name},3,5
-B456,Deep Blue,#0000FF,Prismacolor,1,${grids[0]?.name},10,7
-G789,Forest Green,#228B22,Copic,3,${grids[0]?.name},8,2`}
+                  placeholder={`R123,Crimson Red,#FF0000,Copic,${grids[0]?.name},3,5
+B456,Deep Blue,#0000FF,Prismacolor,${grids[0]?.name},10,7
+G789,Forest Green,#228B22,Copic,${grids[0]?.name},8,2`}
                 />
               </div>
               

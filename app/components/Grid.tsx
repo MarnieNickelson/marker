@@ -126,7 +126,7 @@ const Grid: React.FC<GridProps> = ({ grid, highlightedMarker, highlightedPositio
                     {/* Always show tooltip on hover */}
                     <div className="tooltip">
                       {isHighlighted && highlightedMarker ? 
-                        `${highlightedMarker.markerNumber} - ${highlightedMarker.colorName} (${highlightedMarker.brand})` : 
+                        `${highlightedMarker.markerNumber} - ${highlightedMarker.colorName} (${highlightedMarker.brand?.name || 'No brand'})` : 
                         `Position: ${col}, ${row}`
                       }
                     </div>

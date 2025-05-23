@@ -302,7 +302,7 @@ const GridWithAllMarkers = ({ grid, markers }: { grid: GridType; markers: Marker
                     ) : null}
                     <div className="tooltip">
                       {marker ? 
-                        `${marker.markerNumber} - ${marker.colorName} (${marker.brand})` : 
+                        `${marker.markerNumber} - ${marker.colorName} (${marker.brand?.name || 'No brand'})` : 
                         `Position: ${col}, ${row}`
                       }
                     </div>

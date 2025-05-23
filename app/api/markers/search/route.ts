@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     const criteria: any[] = [
       { markerNumber: { contains: query, mode: 'insensitive' } },
       { colorName: { contains: query, mode: 'insensitive' } },
-      { brand: { contains: query, mode: 'insensitive' } }
+      { brand: { name: { contains: query, mode: 'insensitive' } } }
     ];
     
     const whereClause: any = {
@@ -35,7 +35,8 @@ export async function GET(request: Request) {
     const markers = await prisma.marker.findMany({
       where: whereClause,
       include: {
-        grid: includeGrid
+        grid: includeGrid,
+        brand: true
       },
       orderBy: {
         markerNumber: 'asc'

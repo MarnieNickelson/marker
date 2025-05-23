@@ -7,12 +7,20 @@ export interface Grid {
   updatedAt: Date;
 }
 
+export interface Brand {
+  id: string;
+  name: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface Marker {
   id: string;
   markerNumber: string;
   colorName: string;
   colorHex: string;
-  brand: string;
+  brandId: string | null; // Changed from brand to brandId
+  brand?: Brand;
   quantity: number;
   gridId: string;
   grid?: Grid;

@@ -56,7 +56,7 @@ export default function StatsPage() {
         
         markers.forEach(marker => {
           // Add to unique markers count
-          const markerKey = `${marker.markerNumber}-${marker.colorName}-${marker.brand}`;
+          const markerKey = `${marker.markerNumber}-${marker.colorName}-${marker.brand?.name || 'No brand'}`;
           uniqueMarkers.add(markerKey);
           
           // Count by color
@@ -74,7 +74,7 @@ export default function StatsPage() {
           }
           
           // Count by brand
-          const brand = marker.brand || 'Unspecified';
+          const brand = marker.brand?.name || 'Unspecified';
           if (brandCounts[brand]) {
             brandCounts[brand]++;
           } else {

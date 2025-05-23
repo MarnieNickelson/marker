@@ -19,7 +19,7 @@ export default function AddMarkerPage() {
     markerNumber: searchParams.get('markerNumber') || '',
     colorName: searchParams.get('colorName') || '',
     colorHex: searchParams.get('colorHex') || '#000000',
-    brand: searchParams.get('brand') || ''
+    brandId: searchParams.get('brandId') || ''
   };
 
   useEffect(() => {

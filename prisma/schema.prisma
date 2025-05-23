@@ -23,12 +23,21 @@ model Grid {
   markers     Marker[]
 }
 
+model Brand {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  markers   Marker[]
+}
+
 model Marker {
   id           String   @id @default(cuid())
   markerNumber String   // No longer unique, allows the same marker to be in multiple locations
   colorName    String
   colorHex     String   @default("#000000") // Hex color code for the marker
-  brand        String   @default("") // Marker brand
+  brandId      String?  // Foreign key to Brand
+  brand        Brand?   @relation(fields: [brandId], references: [id])
   quantity     Int      @default(1) // Number of markers at this location
   gridId       String   // Foreign key to Grid
   grid         Grid     @relation(fields: [gridId], references: [id])

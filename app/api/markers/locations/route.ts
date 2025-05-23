@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-// GET - Retrieve all locations for a marker by markerNumber, colorName, and brand
+// GET - Retrieve all locations for a marker by markerNumber, colorName, and brandId
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const markerNumber = searchParams.get('markerNumber');
     const colorName = searchParams.get('colorName');
-    const brand = searchParams.get('brand');
+    const brandId = searchParams.get('brandId');
     
     if (!markerNumber) {
       return NextResponse.json({ error: 'Marker number is required' }, { status: 400 });
@@ -20,15 +20,16 @@ export async function GET(request: Request) {
       whereClause.colorName = colorName;
     }
     
-    if (brand) {
-      whereClause.brand = brand;
+    if (brandId) {
+      whereClause.brandId = brandId;
     }
     
     // Find all markers with the given criteria
     const markers = await prisma.marker.findMany({
       where: whereClause,
       include: {
-        grid: true
+        grid: true,
+        brand: true
       },
       orderBy: {
         createdAt: 'asc'

@@ -18,12 +18,16 @@ import prisma from '@/lib/prisma';
 // GET a single marker by ID
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
+    const id = context.params.id;
     const marker = await prisma.marker.findUnique({
-      where: { id: params.id },
-      include: { grid: true },
+      where: { id },
+      include: { 
+        grid: true,
+        brand: true 
+      },
     });
 
     if (!marker) {
@@ -46,15 +50,16 @@ export async function GET(
 // PUT/PATCH - Update a marker by ID
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   try {
+    const id = context.params.id;
     const body = await request.json();
     const {
       markerNumber,
       colorName,
       colorHex,
-      brand,
+      brandId,
       quantity,
       gridId,
       columnNumber,
@@ -63,7 +68,7 @@ export async function PUT(
 
     // Find the marker to verify it exists
     const existingMarker = await prisma.marker.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingMarker) {
@@ -100,19 +105,22 @@ export async function PUT(
 
     // Update the marker
     const updatedMarker = await prisma.marker.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...(markerNumber && { markerNumber }),
         ...(colorName && { colorName }),
         ...(colorHex && { colorHex }),
-        ...(brand !== undefined && { brand }),
+        ...(brandId !== undefined && { brandId }),
         // Always set quantity to 1 since we're computing it from instances
         quantity: 1,
         ...(gridId && { gridId }),
         ...(columnNumber && { columnNumber: Number(columnNumber) }),
         ...(rowNumber && { rowNumber: Number(rowNumber) }),
       },
-      include: { grid: true },
+      include: { 
+        grid: true,
+        brand: true 
+      },
     });
     
     return NextResponse.json(updatedMarker);
@@ -131,9 +139,10 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const id = params.id;
     // Check if the marker exists
     const marker = await prisma.marker.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!marker) {
@@ -145,7 +154,7 @@ export async function DELETE(
 
     // Delete the marker
     await prisma.marker.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json(

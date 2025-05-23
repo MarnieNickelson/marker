@@ -85,7 +85,7 @@ const SearchMarkers: React.FC = () => {
     // Fetch all markers with the same marker number, color, and brand
     setLoadingSameMarkers(true);
     try {
-      const response = await fetch(`/api/markers/locations?markerNumber=${encodeURIComponent(marker.markerNumber)}&colorName=${encodeURIComponent(marker.colorName)}&brand=${encodeURIComponent(marker.brand || '')}`);
+      const response = await fetch(`/api/markers/locations?markerNumber=${encodeURIComponent(marker.markerNumber)}&colorName=${encodeURIComponent(marker.colorName)}&brandId=${marker.brandId || ''}`);
       if (!response.ok) {
         throw new Error('Failed to fetch marker locations');
       }
@@ -208,7 +208,7 @@ const SearchMarkers: React.FC = () => {
                         {marker.colorName}
                       </span>
                       <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
-                        {marker.brand}
+                        {marker.brand?.name || 'No brand'}
                       </span>
                     </div>
                     <p className="text-xs text-gray-500 mt-2 flex items-center">
@@ -220,7 +220,7 @@ const SearchMarkers: React.FC = () => {
                     </p>
                     {marker.brand && (
                       <p className="text-xs text-gray-500 mt-1 italic">
-                        {marker.brand}
+                        {marker.brand.name}
                       </p>
                     )}
                   </motion.div>
@@ -255,7 +255,7 @@ const SearchMarkers: React.FC = () => {
                           </div>
                           {selectedMarker.brand && (
                             <p className="text-sm text-gray-500 mt-1">
-                              Brand: {selectedMarker.brand}
+                              Brand: {selectedMarker.brand.name}
                             </p>
                           )}
                           <p className="text-sm text-blue-600 mt-2 font-medium">

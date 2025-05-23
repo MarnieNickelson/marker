@@ -5,7 +5,8 @@ interface BulkMarker {
   markerNumber: string;
   colorName: string;
   colorHex?: string;
-  brand?: string;
+  brand?: string;  // Can be brand name or brand ID
+  brandId?: string; // Resolved brand ID
   quantity?: number;
   gridId?: string;
   gridName?: string;  // Allow grid name as an alternative to gridId
@@ -26,7 +27,49 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No markers provided' }, { status: 400 });
     }
     
-    const { markers } = body;      // Validate all markers first
+    const { markers } = body;
+
+    // First, process brands - find existing ones and create new ones if needed
+    const brandMap = new Map<string, string>(); // brand name -> brand ID
+    
+    for (const marker of markers) {
+      if (marker.brand && marker.brand.trim()) {
+        const brandName = marker.brand.trim();
+        
+        // Check if it's already a valid brand ID (UUIDs are typically 25+ characters with specific format)
+        if (brandName.length > 20 && brandName.includes('c')) {
+          // Assume it's a brand ID, verify it exists
+          const existingBrandById = await prisma.brand.findUnique({
+            where: { id: brandName }
+          });
+          if (existingBrandById) {
+            marker.brandId = brandName;
+            brandMap.set(brandName, brandName);
+            continue;
+          }
+        }
+        
+        // Treat as brand name - check if we've already processed this brand name
+        if (!brandMap.has(brandName)) {
+          // Look for existing brand by name
+          let existingBrand = await prisma.brand.findUnique({
+            where: { name: brandName }
+          });
+          
+          if (!existingBrand) {
+            // Create new brand
+            existingBrand = await prisma.brand.create({
+              data: { name: brandName }
+            });
+          }
+          
+          brandMap.set(brandName, existingBrand.id);
+        }
+        
+        // Set the resolved brand ID
+        marker.brandId = brandMap.get(brandName);
+      }
+    }      // Validate all markers first
     for (const marker of markers) {
       const { markerNumber, colorName, gridId, gridName, columnNumber, rowNumber } = marker;
       
@@ -162,7 +205,7 @@ export async function POST(request: Request) {
             markerNumber: marker.markerNumber,
             colorName: marker.colorName,
             colorHex: marker.colorHex || '#000000',
-            brand: marker.brand || '',
+            brandId: marker.brandId || null,
             quantity: 1, // Always 1 since we count by instances
             gridId: marker.gridId,
             columnNumber: marker.columnNumber,

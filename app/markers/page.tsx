@@ -9,16 +9,6 @@ import Link from 'next/link';
 import toast from 'react-hot-toast';
 import MarkerEditForm from '../components/MarkerEditForm';
 
-// Helper function to determine if text should be white or black based on background color
-const getContrastingTextColor = (hexColor: string): string => {
-  const hex = hexColor.replace('#', '');
-  const r = parseInt(hex.slice(0, 2), 16);
-  const g = parseInt(hex.slice(2, 4), 16);
-  const b = parseInt(hex.slice(4, 6), 16);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.5 ? '#000000' : '#FFFFFF';
-};
-
 export default function MarkersPage() {
   const [markers, setMarkers] = useState<Marker[]>([]);
   const [grids, setGrids] = useState<GridType[]>([]);
@@ -75,7 +65,7 @@ export default function MarkersPage() {
   const fetchMarkerLocations = async (marker: Marker) => {
     setLoadingSameMarkers(true);
     try {
-      const response = await fetch(`/api/markers/locations?markerNumber=${encodeURIComponent(marker.markerNumber)}&colorName=${encodeURIComponent(marker.colorName)}&brand=${encodeURIComponent(marker.brand || '')}`);
+      const response = await fetch(`/api/markers/locations?markerNumber=${encodeURIComponent(marker.markerNumber)}&colorName=${encodeURIComponent(marker.colorName)}&brandId=${marker.brandId || ''}`);
       if (!response.ok) {
         throw new Error('Failed to fetch marker locations');
       }
@@ -164,7 +154,7 @@ export default function MarkersPage() {
     return (
       marker.markerNumber.toLowerCase().includes(lowerFilter) ||
       marker.colorName.toLowerCase().includes(lowerFilter) ||
-      marker.brand.toLowerCase().includes(lowerFilter) ||
+      marker.brand?.name.toLowerCase().includes(lowerFilter) ||
       gridName.includes(lowerFilter)
     );
   });
@@ -176,7 +166,9 @@ export default function MarkersPage() {
     } else if (sortBy === 'colorName') {
       return a.colorName.localeCompare(b.colorName);
     } else if (sortBy === 'brand') {
-      return a.brand.localeCompare(b.brand);
+      const brandNameA = a.brand?.name || '';
+      const brandNameB = b.brand?.name || '';
+      return brandNameA.localeCompare(brandNameB);
     } else {
       // Sort by grid name for gridId
       const gridNameA = findGridById(a.gridId)?.name || '';
@@ -185,24 +177,6 @@ export default function MarkersPage() {
     }
   });
   
-  // Custom color based on marker color name
-  const getColorClass = (colorName: string) => {
-    const lowerColor = colorName.toLowerCase();
-    
-    if (lowerColor.includes('red')) return 'bg-secondary-100 text-red-800 border-red-200';
-    if (lowerColor.includes('blue')) return 'bg-primary-100 text-blue-800 border-blue-200';
-    if (lowerColor.includes('green')) return 'bg-green-100 text-green-800 border-green-200';
-    if (lowerColor.includes('yellow')) return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    if (lowerColor.includes('purple')) return 'bg-purple-100 text-purple-800 border-purple-200';
-    if (lowerColor.includes('pink')) return 'bg-pink-100 text-pink-800 border-pink-200';
-    if (lowerColor.includes('orange')) return 'bg-orange-100 text-orange-800 border-orange-200';
-    if (lowerColor.includes('gray') || lowerColor.includes('grey')) return 'bg-gray-100 text-gray-800 border-gray-200';
-    if (lowerColor.includes('black')) return 'bg-gray-800 text-white border-gray-700';
-    if (lowerColor.includes('white')) return 'bg-gray-50 text-gray-800 border-gray-200';
-    
-    return 'bg-primary-100 text-primary-800 border-primary-200';
-  };
-
   return (
     <Layout>
       <motion.div 
@@ -360,7 +334,7 @@ export default function MarkersPage() {
                             {findGridById(marker.gridId)?.name || 'Unknown grid'} ({marker.columnNumber}, {marker.rowNumber})
                           </span>
                           {marker.brand && (
-                            <span className="text-gray-500 italic">{marker.brand}</span>
+                            <span className="text-gray-500 italic">{marker.brand.name}</span>
                           )}
                         </div>
                         {/* Quantity is now calculated from the number of same marker instances */}
@@ -449,7 +423,7 @@ export default function MarkersPage() {
                               <span className="text-gray-600">{selectedMarker.colorName}</span>
                             </div>
                             {selectedMarker.brand && (
-                              <p className="mt-1 text-sm text-gray-500">Brand: {selectedMarker.brand}</p>
+                              <p className="mt-1 text-sm text-gray-500">Brand: {selectedMarker.brand.name}</p>
                             )}
                             <p className="text-sm text-blue-600 mt-2 font-medium">
                               Total Markers: {sameMarkers.length} {sameMarkers.length > 1 ? 'locations' : 'location'}
@@ -496,7 +470,7 @@ export default function MarkersPage() {
                         
                         <div className="mt-4 flex gap-2 pt-2">
                           <Link 
-                            href={`/add?markerNumber=${encodeURIComponent(selectedMarker.markerNumber)}&colorName=${encodeURIComponent(selectedMarker.colorName)}&colorHex=${encodeURIComponent(selectedMarker.colorHex)}&brand=${encodeURIComponent(selectedMarker.brand || '')}`}
+                            href={`/add?markerNumber=${encodeURIComponent(selectedMarker.markerNumber)}&colorName=${encodeURIComponent(selectedMarker.colorName)}&colorHex=${encodeURIComponent(selectedMarker.colorHex)}&brandId=${selectedMarker.brandId || ''}`}
                             className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -13,7 +13,8 @@ export async function GET(request: Request) {
     const markers = await prisma.marker.findMany({
       where,
       include: {
-        grid: includeGrid
+        grid: includeGrid,
+        brand: true, // Include the brand information
       },
       orderBy: {
         markerNumber: 'asc'
@@ -37,7 +38,7 @@ export async function POST(request: Request) {
       markerNumber, 
       colorName, 
       colorHex, 
-      brand, 
+      brandId, // Now using brandId instead of brand
       quantity, 
       gridId, 
       columnNumber, 
@@ -87,12 +88,15 @@ export async function POST(request: Request) {
         markerNumber,
         colorName,
         colorHex: colorHex || '#000000',
-        brand: brand || '',
+        brandId: brandId || null, // Use brandId instead of brand
         quantity: 1, // Default to 1, quantity will be computed based on instances
         gridId,
         columnNumber: parseInt(columnNumber.toString()),
         rowNumber: parseInt(rowNumber.toString()),
       },
+      include: {
+        brand: true, // Include brand in response
+      }
     });
     
     return NextResponse.json(newMarker, { status: 201 });
