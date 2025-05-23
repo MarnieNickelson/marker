@@ -65,26 +65,30 @@ export async function POST(request: Request) {
       );
     }
     
-    // Check if marker with this number already exists
-    const existingMarker = await prisma.marker.findUnique({
-      where: { markerNumber },
+    // Check if position is already occupied in the grid
+    const occupiedPosition = await prisma.marker.findFirst({
+      where: { 
+        gridId,
+        columnNumber: parseInt(columnNumber.toString()),
+        rowNumber: parseInt(rowNumber.toString()),
+      }
     });
     
-    if (existingMarker) {
+    if (occupiedPosition) {
       return NextResponse.json(
-        { error: 'A marker with this number already exists' }, 
+        { error: 'This position is already occupied by another marker' }, 
         { status: 409 }
       );
     }
     
-    // Create the marker
+    // Create the marker (no need to check for duplicate markerNumber)
     const newMarker = await prisma.marker.create({
       data: {
         markerNumber,
         colorName,
         colorHex: colorHex || '#000000',
         brand: brand || '',
-        quantity: quantity || 1,
+        quantity: 1, // Default to 1, quantity will be computed based on instances
         gridId,
         columnNumber: parseInt(columnNumber.toString()),
         rowNumber: parseInt(rowNumber.toString()),

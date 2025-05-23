@@ -25,11 +25,11 @@ model Grid {
 
 model Marker {
   id           String   @id @default(cuid())
-  markerNumber String   @unique
+  markerNumber String   // No longer unique, allows the same marker to be in multiple locations
   colorName    String
   colorHex     String   @default("#000000") // Hex color code for the marker
   brand        String   @default("") // Marker brand
-  quantity     Int      @default(1) // Number of markers of this type
+  quantity     Int      @default(1) // Number of markers at this location
   gridId       String   // Foreign key to Grid
   grid         Grid     @relation(fields: [gridId], references: [id])
   columnNumber Int      // 1-15 (or whatever the grid size is)

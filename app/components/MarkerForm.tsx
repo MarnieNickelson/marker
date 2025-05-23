@@ -2,20 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { Grid } from '../types/marker';
+import { useSearchParams } from 'next/navigation';
 
 interface MarkerFormProps {
   onMarkerAdded: () => void;
   grids?: Grid[];
+  isAddingLocation?: boolean; // When true, only location fields are editable
 }
 
-const MarkerForm: React.FC<MarkerFormProps> = ({ onMarkerAdded, grids: providedGrids }) => {
+const MarkerForm: React.FC<MarkerFormProps> = ({ onMarkerAdded, grids: providedGrids, isAddingLocation = false }) => {
+  const searchParams = useSearchParams();
   const [grids, setGrids] = useState<Grid[]>(providedGrids || []);
   const [formData, setFormData] = useState({
-    markerNumber: '',
-    colorName: '',
-    colorHex: '#000000',
-    brand: '',
-    quantity: '1',
+    markerNumber: searchParams.get('markerNumber') || '',
+    colorName: searchParams.get('colorName') || '',
+    colorHex: searchParams.get('colorHex') || '#000000',
+    brand: searchParams.get('brand') || '',
     gridId: '',
     columnNumber: '',
     rowNumber: '',
@@ -75,7 +77,6 @@ const MarkerForm: React.FC<MarkerFormProps> = ({ onMarkerAdded, grids: providedG
       },
       body: JSON.stringify({
         ...formData,
-        quantity: parseInt(formData.quantity) || 1, // Convert to number
         columnNumber: parseInt(formData.columnNumber) || 1, // Convert to number
         rowNumber: parseInt(formData.rowNumber) || 1, // Convert to number
       }),
@@ -84,24 +85,34 @@ const MarkerForm: React.FC<MarkerFormProps> = ({ onMarkerAdded, grids: providedG
       const data = await response.json();
       
       if (!response.ok) {
+        console.error('Error creating marker:', data);
         throw new Error(data.error || 'Failed to add marker');
       }
       
-      // Reset form but keep the grid selection
+      // Reset form but keep the grid selection and marker details if adding location
       const currentGridId = formData.gridId;
-      setFormData({
-        markerNumber: '',
-        colorName: '',
-        colorHex: '#000000',
-        brand: '',
-        quantity: '1',
-        gridId: currentGridId,
-        columnNumber: '',
-        rowNumber: '',
-      });
+      if (isAddingLocation) {
+        // When adding a location, keep the marker details but clear the position
+        setFormData(prev => ({
+          ...prev,
+          columnNumber: '',
+          rowNumber: '',
+        }));
+      } else {
+        // When adding a new marker, reset all fields except grid
+        setFormData({
+          markerNumber: '',
+          colorName: '',
+          colorHex: '#000000',
+          brand: '',
+          gridId: currentGridId,
+          columnNumber: '',
+          rowNumber: '',
+        });
+      }
       
       onMarkerAdded();
-      return 'Marker added successfully!';
+      return isAddingLocation ? 'New location added!' : 'Marker added successfully!';
     })
     .finally(() => {
       setLoading(false);
@@ -109,7 +120,7 @@ const MarkerForm: React.FC<MarkerFormProps> = ({ onMarkerAdded, grids: providedG
     
     // Show toast notification based on promise result
     toast.promise(submitPromise, {
-      loading: 'Adding marker...',
+      loading: isAddingLocation ? 'Adding location...' : 'Adding marker...',
       success: (message) => message,
       error: (err) => err.message,
     });
@@ -123,8 +134,12 @@ const MarkerForm: React.FC<MarkerFormProps> = ({ onMarkerAdded, grids: providedG
     >
       <form onSubmit={handleSubmit} className="space-y-6 p-6 bg-white rounded-xl shadow-lg border border-blue-100">
         <div className="mb-4">
-          <h2 className="text-xl font-semibold text-blue-800 mb-1">Add New Marker</h2>
-          <p className="text-gray-500 text-sm">Enter the marker details below</p>
+          <h2 className="text-xl font-semibold text-blue-800 mb-1">
+            {isAddingLocation ? 'Add New Location' : 'Add New Marker'}
+          </h2>
+          <p className="text-gray-500 text-sm">
+            {isAddingLocation ? 'Choose a storage location for this marker' : 'Enter the marker details below'}
+          </p>
         </div>
         
         <div>
@@ -137,7 +152,10 @@ const MarkerForm: React.FC<MarkerFormProps> = ({ onMarkerAdded, grids: providedG
             name="markerNumber"
             value={formData.markerNumber}
             onChange={handleChange}
-            className="block w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors"
+            disabled={isAddingLocation}
+            className={`block w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors ${
+              isAddingLocation ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''
+            }`}
             required
             placeholder="e.g. B328 or Y101"
           />
@@ -153,7 +171,10 @@ const MarkerForm: React.FC<MarkerFormProps> = ({ onMarkerAdded, grids: providedG
             name="colorName"
             value={formData.colorName}
             onChange={handleChange}
-            className="block w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors"
+            disabled={isAddingLocation}
+            className={`block w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors ${
+              isAddingLocation ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''
+            }`}
             required
             placeholder="e.g. Light Prawn"
           />
@@ -171,14 +192,18 @@ const MarkerForm: React.FC<MarkerFormProps> = ({ onMarkerAdded, grids: providedG
               name="colorHex"
               value={formData.colorHex}
               onChange={handleChange}
-              className="h-10 w-10 rounded border border-gray-200 cursor-pointer"
+              disabled={isAddingLocation}
+              className={`h-10 w-10 rounded border border-gray-200 ${isAddingLocation ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
             />
             <input
               type="text"
               name="colorHex"
               value={formData.colorHex}
               onChange={handleChange}
-              className="block flex-1 px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-primary-400 focus:border-primary-400 transition-colors"
+              disabled={isAddingLocation}
+              className={`block flex-1 px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-primary-400 focus:border-primary-400 transition-colors ${
+                isAddingLocation ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''
+              }`}
               required
               placeholder="#FF0000"
               pattern="^#([A-Fa-f0-9]{6})$"
@@ -198,39 +223,23 @@ const MarkerForm: React.FC<MarkerFormProps> = ({ onMarkerAdded, grids: providedG
           </div>
         </div>
 
-        {/* Brand and quantity */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label htmlFor="brand" className="block text-sm font-medium text-gray-700 mb-1">
-              Brand
-            </label>
-            <input
-              type="text"
-              id="brand"
-              name="brand"
-              value={formData.brand}
-              onChange={handleChange}
-              className="block w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-primary-400 focus:border-primary-400 transition-colors"
-              placeholder="e.g. Copic, Prismacolor"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-1">
-              Quantity
-            </label>
-            <input
-              type="number"
-              id="quantity"
-              name="quantity"
-              value={formData.quantity}
-              onChange={handleChange}
-              className="block w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-primary-400 focus:border-primary-400 transition-colors"
-              required
-              min="1"
-              max="100"
-            />
-          </div>
+        {/* Brand field */}
+        <div>
+          <label htmlFor="brand" className="block text-sm font-medium text-gray-700 mb-1">
+            Brand
+          </label>
+          <input
+            type="text"
+            id="brand"
+            name="brand"
+            value={formData.brand}
+            onChange={handleChange}
+            disabled={isAddingLocation}
+            className={`block w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-primary-400 focus:border-primary-400 transition-colors ${
+              isAddingLocation ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''
+            }`}
+            placeholder="e.g. Copic, Prismacolor"
+          />
         </div>
 
         {/* Grid selection and position */}
@@ -315,10 +324,10 @@ const MarkerForm: React.FC<MarkerFormProps> = ({ onMarkerAdded, grids: providedG
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Adding...
+                {isAddingLocation ? 'Adding location...' : 'Adding marker...'}
               </>
             ) : (
-              'Add Marker'
+              isAddingLocation ? 'Add Location' : 'Add Marker'
             )}
           </button>
         </div>

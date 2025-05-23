@@ -53,7 +53,7 @@ const Grid: React.FC<GridProps> = ({ grid, highlightedMarker, highlightedPositio
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
     >
-      <h3 className={`text-lg font-semibold text-gray-600 py-2 px-4 ${gridColor.header}`}>
+      <h3 className={`text-lg font-semibold text-white py-2 px-4 ${gridColor.header}`}>
         {grid.name}
       </h3>
       <div className="overflow-x-auto p-2">

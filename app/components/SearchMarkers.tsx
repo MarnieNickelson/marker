@@ -20,6 +20,8 @@ const SearchMarkers: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [selectedMarker, setSelectedMarker] = useState<Marker | null>(null);
   const [grids, setGrids] = useState<Grid[]>([]);
+  const [sameMarkers, setSameMarkers] = useState<Marker[]>([]);
+  const [loadingSameMarkers, setLoadingSameMarkers] = useState(false);
 
   // Fetch all grids on component mount
   useEffect(() => {
@@ -77,8 +79,25 @@ const SearchMarkers: React.FC = () => {
     }
   };
 
-  const handleSelectMarker = (marker: Marker) => {
+  const handleSelectMarker = async (marker: Marker) => {
     setSelectedMarker(marker);
+    
+    // Fetch all markers with the same marker number, color, and brand
+    setLoadingSameMarkers(true);
+    try {
+      const response = await fetch(`/api/markers/locations?markerNumber=${encodeURIComponent(marker.markerNumber)}&colorName=${encodeURIComponent(marker.colorName)}&brand=${encodeURIComponent(marker.brand || '')}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch marker locations');
+      }
+      
+      const data = await response.json();
+      setSameMarkers(data);
+    } catch (error) {
+      console.error('Error fetching marker locations:', error);
+      toast.error('Failed to load all locations for this marker');
+    } finally {
+      setLoadingSameMarkers(false);
+    }
   };
   
   // Find the grid by ID
@@ -189,7 +208,7 @@ const SearchMarkers: React.FC = () => {
                         {marker.colorName}
                       </span>
                       <span className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
-                        Qty: {marker.quantity || 1}
+                        {marker.brand}
                       </span>
                     </div>
                     <p className="text-xs text-gray-500 mt-2 flex items-center">
@@ -239,26 +258,44 @@ const SearchMarkers: React.FC = () => {
                               Brand: {selectedMarker.brand}
                             </p>
                           )}
+                          <p className="text-sm text-blue-600 mt-2 font-medium">
+                            Total Markers: {sameMarkers.length} {sameMarkers.length > 1 ? 'locations' : 'location'}
+                          </p>
                         </div>
                         
                         <div className="bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
-                          <p className="text-sm font-medium text-gray-800">
-                            Location
+                          <p className="text-sm font-medium text-gray-800 mb-2">
+                            Locations ({loadingSameMarkers ? '...' : sameMarkers.length})
                           </p>
-                          <div className="flex items-center mt-1">
-                            <span className="text-sm">
-                              {findGridById(selectedMarker.gridId)?.name || 'Unknown grid'}
-                            </span>
-                            <span className="mx-1 text-gray-400">•</span>
-                            <span className="text-sm">column {selectedMarker.columnNumber}</span>
-                            <span className="mx-1 text-gray-400">•</span>
-                            <span className="text-sm">row {selectedMarker.rowNumber}</span>
-                          </div>
-                          <div className="flex items-center mt-1">
-                            <span className="text-xs font-medium bg-primary-100 text-primary-800 px-2 py-0.5 rounded-full">
-                              Quantity: {selectedMarker.quantity || 1}
-                            </span>
-                          </div>
+                          
+                          {loadingSameMarkers ? (
+                            <div className="flex justify-center py-2">
+                              <svg className="animate-spin h-5 w-5 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                            </div>
+                          ) : (
+                            <div className="space-y-2 max-h-32 overflow-y-auto">
+                              {sameMarkers.map((sameMarker) => (
+                                <div 
+                                  key={sameMarker.id} 
+                                  className={`text-xs p-1.5 rounded border ${selectedMarker?.id === sameMarker.id ? 'bg-primary-50 border-primary-200' : 'bg-white border-gray-100'}`}
+                                  onClick={() => handleSelectMarker(sameMarker)}
+                                  style={{ cursor: 'pointer' }}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-medium">
+                                      {findGridById(sameMarker.gridId)?.name || 'Unknown grid'}
+                                    </span>
+                                  </div>
+                                  <div className="text-gray-500 mt-1">
+                                    Column {sameMarker.columnNumber}, Row {sameMarker.rowNumber}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -268,7 +305,7 @@ const SearchMarkers: React.FC = () => {
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                         </svg>
-                        Grid Location
+                        Primary Location
                       </h4>
                       
                       <div>
@@ -285,6 +322,39 @@ const SearchMarkers: React.FC = () => {
                           )
                         }
                       </div>
+                      
+                      {/* Show other locations if there are any */}
+                      {sameMarkers.length > 1 && (
+                        <div className="mt-6">
+                          <h4 className="text-lg font-semibold text-gray-600 mb-4 flex items-center text-gray-800">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            Other Locations
+                          </h4>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {sameMarkers
+                              .filter(marker => marker.id !== selectedMarker?.id)
+                              .map(marker => (
+                                <div 
+                                  key={marker.id}
+                                  className="p-3 rounded-lg border border-gray-200 hover:border-primary-300 hover:bg-primary-50 cursor-pointer transition-colors"
+                                  onClick={() => handleSelectMarker(marker)}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-medium text-primary-800">{findGridById(marker.gridId)?.name || 'Unknown grid'}</span>
+                                  </div>
+                                  <div className="text-sm text-gray-600 mt-1">
+                                    Position: Column {marker.columnNumber}, Row {marker.rowNumber}
+                                  </div>
+                                </div>
+                              ))
+                            }
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </motion.div>
                 ) : (

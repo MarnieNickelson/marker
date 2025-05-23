@@ -28,6 +28,8 @@ export default function MarkersPage() {
   const [sortBy, setSortBy] = useState<'markerNumber' | 'colorName' | 'gridId' | 'brand'>('markerNumber');
   const [isEditing, setIsEditing] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [sameMarkers, setSameMarkers] = useState<Marker[]>([]);
+  const [loadingSameMarkers, setLoadingSameMarkers] = useState(false);
 
   // Fetch markers and grids
   useEffect(() => {
@@ -55,7 +57,12 @@ export default function MarkersPage() {
       
       setMarkers(markersData);
       if (markersData.length > 0) {
-        setSelectedMarker(markersData[0]);
+        // Set the first marker as selected
+        const firstMarker = markersData[0];
+        setSelectedMarker(firstMarker);
+        
+        // Also fetch its locations
+        fetchMarkerLocations(firstMarker);
       }
     } catch (err) {
       toast.error((err as Error).message);
@@ -64,10 +71,32 @@ export default function MarkersPage() {
     }
   };
 
-  const handleSelectMarker = (marker: Marker) => {
+  // Function to fetch locations for a marker
+  const fetchMarkerLocations = async (marker: Marker) => {
+    setLoadingSameMarkers(true);
+    try {
+      const response = await fetch(`/api/markers/locations?markerNumber=${encodeURIComponent(marker.markerNumber)}&colorName=${encodeURIComponent(marker.colorName)}&brand=${encodeURIComponent(marker.brand || '')}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch marker locations');
+      }
+      
+      const data = await response.json();
+      setSameMarkers(data);
+    } catch (error) {
+      console.error('Error fetching marker locations:', error);
+      toast.error('Failed to load all locations for this marker');
+    } finally {
+      setLoadingSameMarkers(false);
+    }
+  };
+  
+  const handleSelectMarker = async (marker: Marker) => {
     setSelectedMarker(marker);
     setIsEditing(false);
     setDeleteConfirmOpen(false);
+    
+    // Fetch all markers with the same marker number, color, and brand
+    fetchMarkerLocations(marker);
   };
   
   // Find the grid by ID
@@ -334,13 +363,7 @@ export default function MarkersPage() {
                             <span className="text-gray-500 italic">{marker.brand}</span>
                           )}
                         </div>
-                        {marker.quantity > 1 && (
-                          <div className="mt-1 text-xs">
-                            <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded-full">
-                              Qty: {marker.quantity}
-                            </span>
-                          </div>
-                        )}
+                        {/* Quantity is now calculated from the number of same marker instances */}
                       </motion.div>
                     ))}
                   </AnimatePresence>
@@ -428,24 +451,42 @@ export default function MarkersPage() {
                             {selectedMarker.brand && (
                               <p className="mt-1 text-sm text-gray-500">Brand: {selectedMarker.brand}</p>
                             )}
-                            {selectedMarker.quantity > 1 && (
-                              <p className="text-sm text-gray-500">Quantity: {selectedMarker.quantity}</p>
-                            )}
+                            <p className="text-sm text-blue-600 mt-2 font-medium">
+                              Total Markers: {sameMarkers.length} {sameMarkers.length > 1 ? 'locations' : 'location'}
+                            </p>
                           </div>
                           
                           <div className="bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
-                            <p className="text-sm font-medium text-gray-800">
-                              Location
+                            <p className="text-sm font-medium text-gray-800 mb-2">
+                              Locations ({loadingSameMarkers ? '...' : sameMarkers.length})
                             </p>
-                            <div className="flex items-center mt-1">
-                              <span className="text-sm">
-                                {findGridById(selectedMarker.gridId)?.name || 'Unknown grid'}
-                              </span>
-                              <span className="mx-1 text-gray-400">•</span>
-                              <span className="text-sm">column {selectedMarker.columnNumber}</span>
-                              <span className="mx-1 text-gray-400">•</span>
-                              <span className="text-sm">row {selectedMarker.rowNumber}</span>
-                            </div>
+                            
+                            {loadingSameMarkers ? (
+                              <div className="flex justify-center py-2">
+                                <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                              </div>
+                            ) : (
+                              <div className="space-y-2 max-h-32 overflow-y-auto">
+                                {sameMarkers.map((sameMarker) => (
+                                  <div 
+                                    key={sameMarker.id} 
+                                    className={`text-xs p-1.5 rounded border ${selectedMarker?.id === sameMarker.id ? 'bg-blue-50 border-blue-200' : 'bg-white border-gray-100'}`}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <span className="font-medium">
+                                        {findGridById(sameMarker.gridId)?.name || 'Unknown grid'}
+                                      </span>
+                                    </div>
+                                    <div className="text-gray-500 mt-1">
+                                      Column {sameMarker.columnNumber}, Row {sameMarker.rowNumber}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
                         <div className="mt-4 text-sm text-gray-500">
@@ -454,6 +495,16 @@ export default function MarkersPage() {
                         </div>
                         
                         <div className="mt-4 flex gap-2 pt-2">
+                          <Link 
+                            href={`/add?markerNumber=${encodeURIComponent(selectedMarker.markerNumber)}&colorName=${encodeURIComponent(selectedMarker.colorName)}&colorHex=${encodeURIComponent(selectedMarker.colorHex)}&brand=${encodeURIComponent(selectedMarker.brand || '')}`}
+                            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            Add Another Location
+                          </Link>
+                          
                           <button 
                             onClick={handleEditClick}
                             className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors"
@@ -477,10 +528,11 @@ export default function MarkersPage() {
                       </div>
                       
                       <div>
-                        <h4 className="text-lg font-semibold text-gray-600 mb-4 flex items-center text-gray-800">                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <h4 className="text-lg font-semibold text-gray-600 mb-4 flex items-center text-gray-800">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                           </svg>
-                          Grid Location
+                          Primary Location
                         </h4>
                         
                         <div>
@@ -495,6 +547,39 @@ export default function MarkersPage() {
                             />
                           )}
                         </div>
+                        
+                        {/* Show other locations if there are any */}
+                        {sameMarkers.length > 1 && (
+                          <div className="mt-6">
+                            <h4 className="text-lg font-semibold text-gray-600 mb-4 flex items-center text-gray-800">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                              Other Locations
+                            </h4>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {sameMarkers
+                                .filter(marker => marker.id !== selectedMarker?.id)
+                                .map(marker => (
+                                  <div 
+                                    key={marker.id}
+                                    className="p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 cursor-pointer transition-colors"
+                                    onClick={() => setSelectedMarker(marker)}
+                                  >
+                                    <div className="flex justify-between items-center">
+                                      <span className="font-medium text-blue-800">{findGridById(marker.gridId)?.name || 'Unknown grid'}</span>
+                                    </div>
+                                    <div className="text-sm text-gray-600 mt-1">
+                                      Position: Column {marker.columnNumber}, Row {marker.rowNumber}
+                                    </div>
+                                  </div>
+                                ))
+                              }
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </motion.div>
                   ) : (

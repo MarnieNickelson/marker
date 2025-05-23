@@ -6,11 +6,21 @@ import MarkerForm from '../components/MarkerForm';
 import Layout from '../components/Layout';
 import { Grid } from '../types/marker';
 import toast from 'react-hot-toast';
+import { useSearchParams } from 'next/navigation';
 
 export default function AddMarkerPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [grids, setGrids] = useState<Grid[]>([]);
   const [loading, setLoading] = useState(true);
+  const searchParams = useSearchParams();
+
+  // Extract any initial marker data from URL query parameters
+  const initialMarkerData = {
+    markerNumber: searchParams.get('markerNumber') || '',
+    colorName: searchParams.get('colorName') || '',
+    colorHex: searchParams.get('colorHex') || '#000000',
+    brand: searchParams.get('brand') || ''
+  };
 
   useEffect(() => {
     const fetchGrids = async () => {
@@ -48,6 +58,25 @@ export default function AddMarkerPage() {
       >
         <h1 className="text-3xl font-bold text-blue-800 mb-6">Add New Marker</h1>
         
+        {searchParams.get('markerNumber') && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h2 className="font-medium text-blue-800 mb-1">Adding Another Location</h2>
+            <p className="text-sm text-blue-600">
+              You're adding another location for marker <strong>{searchParams.get('markerNumber')}</strong> ({searchParams.get('colorName')}).
+              The marker details have been pre-filled. Just select the grid and position.
+            </p>
+          </div>
+        )}
+        
+        {!searchParams.get('markerNumber') && (
+          <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+            <h2 className="font-medium text-gray-800 mb-1">Organizing Your Markers</h2>
+            <p className="text-sm text-gray-600">
+              You can add the same marker (same marker number, color, and brand) in multiple locations. 
+              The system will automatically track all instances as the same marker in different places.
+            </p>
+          </div>
+        )}
         <div className="grid md:grid-cols-[1fr_330px] gap-6">
           {loading ? (
             <div className="p-8 text-center">
@@ -55,7 +84,12 @@ export default function AddMarkerPage() {
               <p>Loading grid information...</p>
             </div>
           ) : (
-            <MarkerForm onMarkerAdded={handleMarkerAdded} key={refreshKey} grids={grids} />
+            <MarkerForm 
+              onMarkerAdded={handleMarkerAdded} 
+              key={refreshKey} 
+              grids={grids} 
+              isAddingLocation={Boolean(searchParams.get('markerNumber'))}
+            />
           )}
           
           <div className="order-first md:order-last">
@@ -85,10 +119,10 @@ export default function AddMarkerPage() {
                     {grids.map((grid) => (
                       <div 
                         key={grid.id}
-                        className="p-3 rounded-lg border border-gray-200 bg-gray-50"
+                        className="p-3 rounded-lg border border-gray-200 bg-blue-600"
                       >
-                        <h3 className="font-medium text-gray-800 mb-1">{grid.name}</h3>
-                        <div className="flex items-center text-sm text-gray-600">
+                        <h3 className="font-medium text-white mb-1">{grid.name}</h3>
+                        <div className="flex items-center text-sm text-white">
                           <span className="bg-gray-200 text-gray-700 px-2 py-0.5 rounded mr-2">{grid.columns} columns</span> × 
                           <span className="bg-gray-200 text-gray-700 px-2 py-0.5 rounded ml-2">{grid.rows} rows</span>
                         </div>

@@ -98,20 +98,6 @@ export async function PUT(
       }
     }
 
-    // Check if marker number already exists if changing it
-    if (markerNumber && markerNumber !== existingMarker.markerNumber) {
-      const markerWithSameNumber = await prisma.marker.findUnique({
-        where: { markerNumber },
-      });
-      
-      if (markerWithSameNumber) {
-        return NextResponse.json(
-          { error: 'A marker with this number already exists' },
-          { status: 409 }
-        );
-      }
-    }
-
     // Update the marker
     const updatedMarker = await prisma.marker.update({
       where: { id: params.id },
@@ -120,7 +106,8 @@ export async function PUT(
         ...(colorName && { colorName }),
         ...(colorHex && { colorHex }),
         ...(brand !== undefined && { brand }),
-        ...(quantity !== undefined && { quantity: Number(quantity) }),
+        // Always set quantity to 1 since we're computing it from instances
+        quantity: 1,
         ...(gridId && { gridId }),
         ...(columnNumber && { columnNumber: Number(columnNumber) }),
         ...(rowNumber && { rowNumber: Number(rowNumber) }),

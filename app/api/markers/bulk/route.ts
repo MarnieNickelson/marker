@@ -163,7 +163,7 @@ export async function POST(request: Request) {
             colorName: marker.colorName,
             colorHex: marker.colorHex || '#000000',
             brand: marker.brand || '',
-            quantity: marker.quantity || 1,
+            quantity: 1, // Always 1 since we count by instances
             gridId: marker.gridId,
             columnNumber: marker.columnNumber,
             rowNumber: marker.rowNumber,

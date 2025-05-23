@@ -178,7 +178,7 @@ export default function GridsManagementPage() {
                 transition={{ duration: 0.3 }}
               >
                 <div className={`p-4 ${grid.id.charCodeAt(0) % 2 === 0 ? 'bg-blue-600' : 'bg-accent-600'} text-white flex justify-between items-center`}>
-                  <h3 className="text-lg font-semibold text-gray-600">{grid.name}</h3>
+                  <h3 className="text-lg font-semibold text-white">{grid.name}</h3>
                   <span className="text-sm bg-white/20 px-2 py-0.5 rounded">
                     {grid.columns} x {grid.rows}
                   </span>

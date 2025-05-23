@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
-// GET - Search for markers by markerNumber, colorName, brand, or quantity
+// GET - Search for markers by markerNumber, colorName, or brand
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -14,21 +14,12 @@ export async function GET(request: Request) {
     const includeGrid = searchParams.get('includeGrid') === 'true';
     const gridId = searchParams.get('gridId');
     
-    // Try to parse the query as a number for quantity search
-    const queryNumber = parseInt(query);
-    const isNumberQuery = !isNaN(queryNumber);
-    
     // Build the search criteria
     const criteria: any[] = [
       { markerNumber: { contains: query, mode: 'insensitive' } },
       { colorName: { contains: query, mode: 'insensitive' } },
       { brand: { contains: query, mode: 'insensitive' } }
     ];
-    
-    // Add quantity search if the query is a number
-    if (isNumberQuery) {
-      criteria.push({ quantity: queryNumber });
-    }
     
     const whereClause: any = {
       AND: [

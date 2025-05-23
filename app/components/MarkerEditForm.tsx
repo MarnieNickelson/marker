@@ -22,7 +22,6 @@ const MarkerEditForm: React.FC<MarkerEditFormProps> = ({
     colorName: marker.colorName,
     colorHex: marker.colorHex,
     brand: marker.brand,
-    quantity: String(marker.quantity),
     gridId: marker.gridId,
     columnNumber: String(marker.columnNumber),
     rowNumber: String(marker.rowNumber),
@@ -74,7 +73,6 @@ const MarkerEditForm: React.FC<MarkerEditFormProps> = ({
       },
       body: JSON.stringify({
         ...formData,
-        quantity: parseInt(formData.quantity) || 1,
         columnNumber: parseInt(formData.columnNumber) || 1,
         rowNumber: parseInt(formData.rowNumber) || 1,
       }),
@@ -184,39 +182,20 @@ const MarkerEditForm: React.FC<MarkerEditFormProps> = ({
           </div>
         </div>
 
-        {/* Brand and quantity */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label htmlFor="brand" className="block text-sm font-medium text-gray-700 mb-1">
-              Brand
-            </label>
-            <input
-              type="text"
-              id="brand"
-              name="brand"
-              value={formData.brand}
-              onChange={handleChange}
-              className="block w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors"
-              placeholder="e.g. Copic, Prismacolor"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="quantity" className="block text-sm font-medium text-gray-700 mb-1">
-              Quantity
-            </label>
-            <input
-              type="number"
-              id="quantity"
-              name="quantity"
-              value={formData.quantity}
-              onChange={handleChange}
-              className="block w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors"
-              required
-              min="1"
-              max="100"
-            />
-          </div>
+        {/* Brand field */}
+        <div>
+          <label htmlFor="brand" className="block text-sm font-medium text-gray-700 mb-1">
+            Brand
+          </label>
+          <input
+            type="text"
+            id="brand"
+            name="brand"
+            value={formData.brand}
+            onChange={handleChange}
+            className="block w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors"
+            placeholder="e.g. Copic, Prismacolor"
+          />
         </div>
 
         {/* Grid selection and position */}

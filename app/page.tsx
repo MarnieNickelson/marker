@@ -16,10 +16,18 @@ export default function Home() {
           transition={{ duration: 0.5 }}
         >
           <h1 className="text-3xl font-bold text-primary-800 mb-4">Welcome to Marker Tracker</h1>
-          <p className="text-gray-600 max-w-3xl">
+          <p className="text-gray-600 max-w-3xl mb-4">
             Keep track of your markers and find them quickly in your storage grids. 
             This app helps you organize your markers by their number, color, brand, and exact storage location.
           </p>
+          
+          <div className="p-4 bg-green-50 border border-green-200 rounded-lg mb-6">
+            <h2 className="font-medium text-green-800 mb-1">New Feature!</h2>
+            <p className="text-sm text-green-700">
+              You can now add the same marker in multiple locations. The system will track all instances 
+              of the same marker (same number, color, and brand) across different storage positions.
+            </p>
+          </div>
         </motion.div>
 
         <motion.div 

@@ -75,13 +75,12 @@ export default function ImportPage() {
         
         // For backward compatibility, handle both formats
         // Old format: markerNumber,colorName,gridName,columnNumber,rowNumber
-        // New format: markerNumber,colorName,colorHex,brand,quantity,gridName,columnNumber,rowNumber
+        // New format: markerNumber,colorName,colorHex,brand,gridName,columnNumber,rowNumber
         
         let markerNumber: string, 
             colorName: string, 
             colorHex: string = '#000000', 
             brand: string = '', 
-            quantity: string = '1', 
             gridName: string, 
             columnNumber: string, 
             rowNumber: string;
@@ -89,19 +88,13 @@ export default function ImportPage() {
         if (parts.length === 5) {
           // Old format - directly use grid name
           [markerNumber, colorName, gridName, columnNumber, rowNumber] = parts;
-        } else if (parts.length >= 8) {
-          // New format
-          [markerNumber, colorName, colorHex, brand, quantity, gridName, columnNumber, rowNumber] = parts;
+        } else if (parts.length >= 7) {
+          // New format with colorHex and brand
+          [markerNumber, colorName, colorHex, brand, gridName, columnNumber, rowNumber] = parts;
           
           // Validate hex color format
           if (!colorHex.startsWith('#') || (colorHex.length !== 4 && colorHex.length !== 7)) {
             colorHex = '#000000'; // Default to black if invalid
-          }
-          
-          // Validate quantity is a number
-          const parsedQuantity = parseInt(quantity);
-          if (isNaN(parsedQuantity) || parsedQuantity < 1) {
-            quantity = '1'; // Default to 1 if invalid
           }
         } else {
           // Handle ambiguous case with 6-7 values by assuming the last two are always column and row
@@ -134,7 +127,7 @@ export default function ImportPage() {
           colorName,
           colorHex,
           brand,
-          quantity: parseInt(quantity) || 1,
+          quantity: 1, // Always 1 since we count by instances
           gridName,
           gridId: grid.id, // Include both for compatibility
           columnNumber: colNum,
@@ -263,13 +256,13 @@ G789,Forest Green,#228B22,Copic,3,${grids[0]?.name},8,2`}
             {!loadingGrids && (
               <div className="space-y-3 mb-6">
                 {grids.map(grid => (
-                  <div key={grid.id} className="bg-gray-50 p-3 rounded-md border border-gray-200">
+                  <div key={grid.id} className="bg-blue-600 p-3 rounded-md border border-gray-200">
                     <div className="flex justify-between items-center">
                       <div>
-                        <p className="font-medium text-gray-700">{grid.name}</p>
-                        <p className="text-xs text-gray-500">Use this name in your CSV</p>
+                        <p className="font-medium text-white">{grid.name}</p>
+                        <p className="text-xs text-white opacity-80">Use this name in your CSV</p>
                       </div>
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-white">
                         {grid.columns} columns × {grid.rows} rows
                       </div>
                     </div>
@@ -288,13 +281,12 @@ G789,Forest Green,#228B22,Copic,3,${grids[0]?.name},8,2`}
               
               <div className="bg-gray-50 p-3 rounded-md">
                 <p className="font-medium text-gray-700">Full format (recommended):</p>
-                <p className="mt-1 font-mono">markerNumber,colorName,colorHex,brand,quantity,gridName,columnNumber,rowNumber</p>
+                <p className="mt-1 font-mono">markerNumber,colorName,colorHex,brand,gridName,columnNumber,rowNumber</p>
                 <p className="mt-2 text-xs">
-                  <span className="font-medium">markerNumber:</span> Unique identifier for the marker<br />
+                  <span className="font-medium">markerNumber:</span> Identifier for the marker<br />
                   <span className="font-medium">colorName:</span> Name of the color (e.g., "Crimson Red")<br />
                   <span className="font-medium">colorHex:</span> Hexadecimal color code (e.g., "#FF0000")<br />
                   <span className="font-medium">brand:</span> Marker brand (e.g., "Copic")<br />
-                  <span className="font-medium">quantity:</span> Number of markers (1 or more)<br />
                   <span className="font-medium">gridName:</span> Name of the storage grid<br />
                   <span className="font-medium">columnNumber:</span> Column position in the grid<br />
                   <span className="font-medium">rowNumber:</span> Row position in the grid

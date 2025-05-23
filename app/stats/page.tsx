@@ -50,9 +50,15 @@ export default function StatsPage() {
         const colorCounts: {[colorName: string]: number} = {};
         const gridCounts: {[gridId: string]: number} = {};
         const brandCounts: {[brand: string]: number} = {};
-        let totalQuantity = 0;
+        
+        // Track unique markers by combining markerNumber, colorName, and brand
+        const uniqueMarkers = new Set<string>();
         
         markers.forEach(marker => {
+          // Add to unique markers count
+          const markerKey = `${marker.markerNumber}-${marker.colorName}-${marker.brand}`;
+          uniqueMarkers.add(markerKey);
+          
           // Count by color
           if (colorCounts[marker.colorName]) {
             colorCounts[marker.colorName]++;
@@ -74,9 +80,6 @@ export default function StatsPage() {
           } else {
             brandCounts[brand] = 1;
           }
-          
-          // Add to total quantity
-          totalQuantity += marker.quantity || 1;
         });
         
         // Convert grid IDs to names in the stats
@@ -89,8 +92,8 @@ export default function StatsPage() {
         });
         
         setStats({
-          totalCount: markers.length,
-          totalQuantity,
+          totalCount: markers.length, // Total marker instances
+          totalQuantity: uniqueMarkers.size, // Number of unique markers
           gridCounts: namedGridCounts,
           colorCounts,
           brandCounts
@@ -160,7 +163,7 @@ export default function StatsPage() {
                     <h3 className="text-lg font-medium text-gray-800">Total Markers</h3>
                     <span className="text-3xl font-bold text-primary-600">{stats.totalCount}</span>
                   </div>
-                  <p className="text-sm text-gray-500 mt-2">Total number of markers in the collection</p>
+                  <p className="text-sm text-gray-500 mt-2">Total number of marker instances across all locations</p>
                 </motion.div>
 
                 <motion.div 
@@ -170,10 +173,10 @@ export default function StatsPage() {
                   transition={{ duration: 0.3, delay: 0.1 }}
                 >
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-medium text-gray-800">Total Quantity</h3>
+                    <h3 className="text-lg font-medium text-gray-800">Unique Markers</h3>
                     <span className="text-3xl font-bold text-primary-600">{stats.totalQuantity}</span>
                   </div>
-                  <p className="text-sm text-gray-500 mt-2">Total quantity of markers</p>
+                  <p className="text-sm text-gray-500 mt-2">Number of unique markers (by number, color, brand)</p>
                 </motion.div>
 
                 {Object.entries(stats.gridCounts).map(([gridName, count], index) => (

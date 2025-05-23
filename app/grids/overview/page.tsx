@@ -150,18 +150,22 @@ export default function GridOverviewPage() {
                   return (
                     <button
                       key={grid.id}
-                      className={`w-full text-left p-4 hover:bg-gray-50 transition-colors ${
-                        selectedGrid === grid.id ? 'bg-gray-100' : ''
+                      className={`w-full text-left p-4 hover:bg-blue-500 transition-colors group ${
+                        selectedGrid === grid.id ? 'bg-blue-600' : ''
                       }`}
                       onClick={() => setSelectedGrid(grid.id)}
                     >
                       <div className="flex justify-between items-center">
-                        <h3 className="font-medium text-gray-800">{grid.name}</h3>
+                        <h3 className={`font-medium ${
+                          selectedGrid === grid.id ? 'text-white' : 'text-gray-800 group-hover:text-white'
+                        }`}>{grid.name}</h3>
                         <span className="text-xs bg-gray-200 px-2 py-1 rounded-full">
                           {grid.columns}×{grid.rows}
                         </span>
                       </div>
-                      <div className="mt-2 flex text-xs space-x-2 text-gray-500">
+                      <div className={`mt-2 flex text-xs space-x-2 ${
+                        selectedGrid === grid.id ? 'text-white' : 'text-gray-500 group-hover:text-white'
+                      }`}>
                         <span>{stats.filled} markers</span>
                         <span>•</span>
                         <span>{stats.empty} empty</span>
@@ -248,7 +252,7 @@ const GridWithAllMarkers = ({ grid, markers }: { grid: GridType; markers: Marker
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
     >
-      <h3 className={`text-lg font-semibold text-gray-600 py-2 px-4 ${gridColor.header}`}>
+      <h3 className={`text-lg font-semibold text-white py-2 px-4 ${gridColor.header}`}>
         {grid.name}
       </h3>
       <div className="overflow-x-auto p-2">
