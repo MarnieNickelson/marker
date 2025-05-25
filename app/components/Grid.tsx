@@ -43,8 +43,8 @@ const Grid: React.FC<GridProps> = ({ grid, highlightedMarker, highlightedPositio
     highlight: isEven ? 'bg-primary-400 shadow-lg shadow-primary-100' : 'bg-accent-400 shadow-lg shadow-accent-100',
   };
 
-  // Create grid template columns style
-  const gridTemplateColumns = `auto repeat(${grid.columns}, minmax(44px, 1fr))`;
+  // Create grid template columns style that adapts to container width
+  const gridTemplateColumns = `auto repeat(${grid.columns}, minmax(32px, 1fr))`;
 
   return (
     <motion.div 
@@ -56,9 +56,9 @@ const Grid: React.FC<GridProps> = ({ grid, highlightedMarker, highlightedPositio
       <h3 className={`text-lg font-semibold text-white py-2 px-4 ${gridColor.header}`}>
         {grid.name}
       </h3>
-      <div className="overflow-x-auto p-2">
+      <div className="p-2">
         <div 
-          className={`grid ${gridColor.bg} rounded-lg`}
+          className={`grid ${gridColor.bg} rounded-lg w-full`}
           style={{ gridTemplateColumns }}
         >
           {/* Column headers */}
@@ -90,13 +90,13 @@ const Grid: React.FC<GridProps> = ({ grid, highlightedMarker, highlightedPositio
                 return (
                   <div 
                     key={`${row}-${col}`}
-                    className={`h-11 w-11 border border-gray-200 flex items-center justify-center rounded-md m-0.5 transition-all tooltip-container ${
+                    className={`h-8 w-8 min-w-[2rem] border border-gray-200 flex items-center justify-center rounded-md m-0.5 transition-all tooltip-container ${
                       isHighlighted ? `${gridColor.highlight}` : 'hover:bg-gray-100'
                     }`}
                   >
                     {isHighlighted && (
                       <motion.div 
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-xs relative"
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-xs relative"
                         style={{ 
                           backgroundColor: highlightedMarker?.colorHex || 'white',
                           color: getContrastingTextColor(highlightedMarker?.colorHex || '#FFFFFF')

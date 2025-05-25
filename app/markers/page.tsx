@@ -259,7 +259,7 @@ export default function MarkersPage() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100">
+              <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 flex flex-col h-[80vh]">
                 <div className="mb-4">
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -297,7 +297,7 @@ export default function MarkersPage() {
                   </div>
                 </div>
                 
-                <div className="divide-y divide-gray-100 max-h-[60vh] overflow-auto pr-1 space-y-2">
+                <div className="divide-y divide-gray-100 flex-1 overflow-auto pr-1 space-y-2">
                   <AnimatePresence>
                     {sortedMarkers.map((marker) => (
                       <motion.div
@@ -356,7 +356,7 @@ export default function MarkersPage() {
                 </div>
               </div>
               
-              <div>
+              <div className="overflow-hidden">
                 <AnimatePresence mode="wait">
                   {isEditing && selectedMarker ? (
                     <MarkerEditForm 

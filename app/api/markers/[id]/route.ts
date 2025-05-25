@@ -16,12 +16,17 @@ import prisma from '@/lib/prisma';
  */
 
 // GET a single marker by ID
+type Props = {
+  params: Promise<{ id: string }>
+}
+
 export async function GET(
   request: Request,
-  context: { params: { id: string } }
+  props: Props
 ) {
   try {
-    const id = context.params.id;
+    const params = await props.params;
+    const id = params.id;
     const marker = await prisma.marker.findUnique({
       where: { id },
       include: { 
@@ -50,10 +55,11 @@ export async function GET(
 // PUT/PATCH - Update a marker by ID
 export async function PUT(
   request: Request,
-  context: { params: { id: string } }
+  props: Props
 ) {
   try {
-    const id = context.params.id;
+    const params = await props.params;
+    const id = params.id;
     const body = await request.json();
     const {
       markerNumber,
@@ -136,9 +142,10 @@ export async function PUT(
 // DELETE - Delete a marker by ID
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  props: Props
 ) {
   try {
+    const params = await props.params;
     const id = params.id;
     // Check if the marker exists
     const marker = await prisma.marker.findUnique({

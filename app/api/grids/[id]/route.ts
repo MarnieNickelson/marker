@@ -1,12 +1,17 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
+type Props = {
+  params: Promise<{ id: string }>
+}
+
 export async function GET(
   request: Request,
-  context: { params: { id: string } }
+  props: Props
 ) {
   try {
-    const id = context.params.id;
+    const params = await props.params;
+    const id = params.id;
     
     const grid = await prisma.grid.findUnique({
       where: { id },
@@ -26,10 +31,11 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  context: { params: { id: string } }
+  props: Props
 ) {
   try {
-    const id = context.params.id;
+    const params = await props.params;
+    const id = params.id;
     const body = await request.json();
     
     // Validate the input
@@ -67,9 +73,10 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  props: Props
 ) {
   try {
+    const params = await props.params;
     const id = params.id;
     
     // Check if grid exists
