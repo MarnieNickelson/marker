@@ -15,7 +15,7 @@ export default function MarkersPage() {
   const [loading, setLoading] = useState(true);
   const [selectedMarker, setSelectedMarker] = useState<Marker | null>(null);
   const [filterValue, setFilterValue] = useState('');
-  const [sortBy, setSortBy] = useState<'markerNumber' | 'colorName' | 'gridId' | 'brand'>('markerNumber');
+  const [sortBy, setSortBy] = useState<'markerNumber' | 'colorName' | 'gridId' | 'brand' | 'grid'>('markerNumber');
   const [isEditing, setIsEditing] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [sameMarkers, setSameMarkers] = useState<Marker[]>([]);
@@ -144,6 +144,36 @@ export default function MarkersPage() {
     }
   };
 
+  // Handle CSV export
+  const handleExportCSV = async () => {
+    try {
+      const response = await fetch('/api/markers/export');
+      
+      if (!response.ok) {
+        throw new Error('Failed to export markers');
+      }
+      
+      // Get the CSV content
+      const csvContent = await response.text();
+      
+      // Create a download link
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `markers-export-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Markers exported successfully');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error((error as Error).message || 'Failed to export markers');
+    }
+  };
+
   // Filter markers based on search input
   const filteredMarkers = markers.filter(marker => {
     if (!filterValue) return true;
@@ -169,11 +199,26 @@ export default function MarkersPage() {
       const brandNameA = a.brand?.name || '';
       const brandNameB = b.brand?.name || '';
       return brandNameA.localeCompare(brandNameB);
-    } else {
-      // Sort by grid name for gridId
+    } else if (sortBy === 'gridId') {
+      // Sort by grid first, then by position (row, then column) for left-to-right, top-to-bottom ordering
       const gridNameA = findGridById(a.gridId)?.name || '';
       const gridNameB = findGridById(b.gridId)?.name || '';
-      return gridNameA.localeCompare(gridNameB);
+      
+      // First sort by grid name
+      const gridComparison = gridNameA.localeCompare(gridNameB);
+      if (gridComparison !== 0) {
+        return gridComparison;
+      }
+      
+      // If same grid, sort by row first (top to bottom)
+      if (a.rowNumber !== b.rowNumber) {
+        return a.rowNumber - b.rowNumber;
+      }
+      
+      // If same row, sort by column (left to right)
+      return a.columnNumber - b.columnNumber;
+    } else {
+      return a.markerNumber.localeCompare(b.markerNumber);
     }
   });
   
@@ -195,10 +240,20 @@ export default function MarkersPage() {
           </motion.h1>
           
           <motion.div
+            className="flex gap-3"
             initial={{ opacity: 0, x: 10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.4, delay: 0.1 }}
           >
+            <button
+              onClick={handleExportCSV}
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span>Export CSV</span>
+            </button>
             <Link
               href="/add"
               className="flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm"
