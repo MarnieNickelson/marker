@@ -5,7 +5,7 @@ This document provides instructions for deploying the Marker Tracker application
 ## Prerequisites
 
 - Node.js (v16 or newer)
-- PostgreSQL database
+- MySQL database (Hostinger provides MySQL)
 - Git
 
 ## Deployment Options
@@ -26,7 +26,12 @@ This document provides instructions for deploying the Marker Tracker application
 3. **Set up environment variables**
    Create a `.env` file with your production database connection string:
    ```
-   DATABASE_URL="postgresql://username:password@your-production-db-host:5432/marker_tracker?schema=public"
+   DATABASE_URL="mysql://username:password@your-hostinger-db-host:3306/marker_tracker"
+   ```
+   
+   For Hostinger specifically, the connection string format will be:
+   ```
+   DATABASE_URL="mysql://your_hostinger_db_username:your_hostinger_db_password@your_hostinger_db_host:3306/your_hostinger_db_name"
    ```
 
 4. **Build the application**
@@ -104,22 +109,22 @@ This document provides instructions for deploying the Marker Tracker application
        depends_on:
          - db
        environment:
-         - DATABASE_URL=postgresql://postgres:postgres@db:5432/marker_tracker?schema=public
+         - DATABASE_URL=mysql://root:mysql_password@db:3306/marker_tracker
        restart: always
 
      db:
-       image: postgres:16
+       image: mysql:8.0
        ports:
-         - "5432:5432"
+         - "3306:3306"
        environment:
-         - POSTGRES_PASSWORD=postgres
-         - POSTGRES_USER=postgres
-         - POSTGRES_DB=marker_tracker
+         - MYSQL_ROOT_PASSWORD=mysql_password
+         - MYSQL_DATABASE=marker_tracker
        volumes:
-         - postgres_data:/var/lib/postgresql/data
+         - mysql_data:/var/lib/mysql
+       command: --default-authentication-plugin=mysql_native_password
 
    volumes:
-     postgres_data:
+     mysql_data:
    ```
 
 3. **Deploy with Docker Compose**
@@ -173,10 +178,43 @@ This document provides instructions for deploying the Marker Tracker application
    - Let's Encrypt with Certbot
    - Nginx as a reverse proxy
 
+## Hostinger-Specific Deployment
+
+### Setting up MySQL Database on Hostinger
+
+1. **Log in to your Hostinger control panel**
+
+2. **Access the Database section**
+   - Create a new MySQL database
+   - Note your database name, username, password, and host
+
+3. **Configure your application**
+   Update your `.env` file with the Hostinger MySQL connection string:
+   ```
+   DATABASE_URL="mysql://hostinger_db_username:hostinger_db_password@hostinger_db_host:3306/hostinger_db_name"
+   ```
+
+4. **Upload your application**
+   - Using Hostinger's File Manager or FTP
+   - Ensure you've built the application locally with `npm run build` before uploading
+
+5. **Set up environment variables**
+   - Configure the DATABASE_URL environment variable in Hostinger
+   - Configure any other environment variables your application needs
+
+6. **Initialize the database**
+   - Connect to your MySQL database using the provided credentials
+   - Run the necessary Prisma migrations or setup commands
+
+7. **Start your application**
+   - Use Hostinger's Node.js application manager if available
+   - Or set up a custom Node.js environment as per Hostinger's documentation
+
 ## Troubleshooting
 
-- **Database Connection Issues**: Ensure your database is accessible from the deployment environment and that the connection string is correct
+- **Database Connection Issues**: Ensure your database is accessible from the deployment environment and that the connection string is correct. Hostinger may have specific firewall rules or connection requirements.
 - **Build Failures**: Check for any TypeScript errors or dependency issues
 - **Performance Issues**: Consider adding a caching layer for frequently accessed marker data
+- **MySQL Specific Issues**: Make sure your MySQL version is compatible with Prisma (MySQL 5.7+ or 8.0+ recommended)
 
-For additional help, refer to the [Next.js deployment documentation](https://nextjs.org/docs/deployment).
+For additional help, refer to the [Next.js deployment documentation](https://nextjs.org/docs/deployment) and [Hostinger's documentation](https://support.hostinger.com).

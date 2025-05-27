@@ -1,6 +1,6 @@
 # Marker Tracker App
 
-A modern web application built with Next.js, TypeScript, and PostgreSQL to track markers and their storage locations in organized grids. This application helps users manage their marker collections by providing a visual interface for tracking the location of each marker in storage grids.
+A modern web application built with Next.js, TypeScript, and MySQL to track markers and their storage locations in organized grids. This application helps users manage their marker collections by providing a visual interface for tracking the location of each marker in storage grids.
 
 ![Marker Tracker](https://via.placeholder.com/800x400?text=Marker+Tracker+App)
 
@@ -21,7 +21,7 @@ A modern web application built with Next.js, TypeScript, and PostgreSQL to track
 ## Prerequisites
 
 - Node.js (v16 or newer)
-- PostgreSQL database
+- MySQL database (5.7+ or 8.0+ recommended)
 
 ## Setup Instructions
 
@@ -31,12 +31,17 @@ A modern web application built with Next.js, TypeScript, and PostgreSQL to track
    ```
 
 2. Configure your database:
-   - Create a PostgreSQL database for the application
+   - Create a MySQL database for the application
    - Update the `.env` file with your database connection URL:
      ```
-     DATABASE_URL="postgresql://username:password@localhost:5432/marker_tracker?schema=public"
+     DATABASE_URL="mysql://username:password@localhost:3306/marker_tracker"
      ```
    - Replace `username`, `password`, and other parameters with your actual database credentials
+   
+   For Hostinger deployment, use:
+     ```
+     DATABASE_URL="mysql://your_hostinger_username:your_hostinger_password@your_hostinger_hostname:3306/your_hostinger_database"
+     ```
 
 3. Set up the database:
    ```bash
@@ -75,7 +80,18 @@ When adding a marker, specify which grid it's in and the exact column and row po
 - `npm run db:push`: Push schema changes to the database
 - `npm run db:studio`: Open Prisma Studio to manage your data
 - `npm run db:seed`: Populate the database with sample marker data
+- `npm run mysql:migrate`: Run the MySQL migration helper script
 
 ## Deployment
 
 For detailed deployment instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).
+
+### MySQL Migration
+
+If you're migrating from PostgreSQL to MySQL (for Hostinger deployment):
+
+1. See [MYSQL_MIGRATION_GUIDE.md](MYSQL_MIGRATION_GUIDE.md) for detailed migration instructions
+2. Run the migration helper script:
+   ```bash
+   npm run mysql:migrate
+   ```

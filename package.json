@@ -12,13 +12,15 @@
     "db:studio": "prisma studio",
     "db:seed": "ts-node prisma/seed.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "mysql:migrate": "node scripts/mysql-migration.js"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",
     "@heroicons/react": "^2.2.0",
     "@prisma/client": "^6.8.2",
     "framer-motion": "^12.12.1",
+    "mysql2": "^3.14.1",
     "next": "15.3.2",
     "prisma": "^6.8.2",
     "react": "^19.0.0",
