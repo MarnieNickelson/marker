@@ -21,12 +21,20 @@ const grids = [
   },
 ];
 
+// Sample brand data
+const brands = [
+  { name: 'Copic' },
+  { name: 'Prismacolor' },
+  { name: 'Tombow' },
+  { name: 'Faber-Castell' },
+];
+
 // Helper type for our markers with gridIndex
 type MarkerWithGridIndex = {
   markerNumber: string;
   colorName: string;
   colorHex: string;
-  brand: string;
+  brandName: string; // Now we store brand name to lookup the ID later
   quantity: number;
   gridIndex: number; // Used to reference the grids array
   columnNumber: number;
@@ -39,7 +47,7 @@ const markers: MarkerWithGridIndex[] = [
     markerNumber: 'R123',
     colorName: 'Crimson Red',
     colorHex: '#DC143C',
-    brand: 'Copic',
+    brandName: 'Copic',
     quantity: 2,
     gridIndex: 0, // This will be replaced with actual gridId
     columnNumber: 3,
@@ -49,7 +57,7 @@ const markers: MarkerWithGridIndex[] = [
     markerNumber: 'B456',
     colorName: 'Deep Blue',
     colorHex: '#00008B',
-    brand: 'Prismacolor',
+    brandName: 'Prismacolor',
     quantity: 1,
     gridIndex: 1, 
     columnNumber: 10,
@@ -59,7 +67,7 @@ const markers: MarkerWithGridIndex[] = [
     markerNumber: 'G789',
     colorName: 'Forest Green',
     colorHex: '#228B22',
-    brand: 'Copic',
+    brandName: 'Copic',
     quantity: 3,
     gridIndex: 0, 
     columnNumber: 8,
@@ -69,7 +77,7 @@ const markers: MarkerWithGridIndex[] = [
     markerNumber: 'Y101',
     colorName: 'Sunshine Yellow',
     colorHex: '#FFD700',
-    brand: 'Tombow',
+    brandName: 'Tombow',
     quantity: 1,
     gridIndex: 1, 
     columnNumber: 4,
@@ -79,7 +87,7 @@ const markers: MarkerWithGridIndex[] = [
     markerNumber: 'P202',
     colorName: 'Royal Purple',
     colorHex: '#7851A9',
-    brand: 'Copic',
+    brandName: 'Copic',
     quantity: 1,
     gridIndex: 0, 
     columnNumber: 12,
@@ -89,7 +97,7 @@ const markers: MarkerWithGridIndex[] = [
     markerNumber: 'O303',
     colorName: 'Bright Orange',
     colorHex: '#FF7F50',
-    brand: 'Prismacolor',
+    brandName: 'Prismacolor',
     quantity: 2,
     gridIndex: 1, 
     columnNumber: 6,
@@ -99,7 +107,7 @@ const markers: MarkerWithGridIndex[] = [
     markerNumber: 'BR404',
     colorName: 'Chocolate Brown',
     colorHex: '#7B3F00',
-    brand: 'Faber-Castell',
+    brandName: 'Faber-Castell',
     quantity: 1,
     gridIndex: 0, 
     columnNumber: 15,
@@ -109,7 +117,7 @@ const markers: MarkerWithGridIndex[] = [
     markerNumber: 'BL505',
     colorName: 'Midnight Black',
     colorHex: '#191970',
-    brand: 'Copic',
+    brandName: 'Copic',
     quantity: 4,
     gridIndex: 1, 
     columnNumber: 9,
@@ -119,7 +127,7 @@ const markers: MarkerWithGridIndex[] = [
     markerNumber: 'W606',
     colorName: 'Pure White',
     colorHex: '#FFFFFF',
-    brand: 'Prismacolor',
+    brandName: 'Prismacolor',
     quantity: 2,
     gridIndex: 0, 
     columnNumber: 2,
@@ -129,7 +137,7 @@ const markers: MarkerWithGridIndex[] = [
     markerNumber: 'PK707',
     colorName: 'Hot Pink',
     colorHex: '#FF69B4',
-    brand: 'Tombow',
+    brandName: 'Tombow',
     quantity: 1,
     gridIndex: 1, 
     columnNumber: 14,
@@ -139,7 +147,7 @@ const markers: MarkerWithGridIndex[] = [
     markerNumber: 'T808',
     colorName: 'Teal',
     colorHex: '#008080',
-    brand: 'Copic',
+    brandName: 'Copic',
     quantity: 2,
     gridIndex: 2, 
     columnNumber: 5,
@@ -149,7 +157,7 @@ const markers: MarkerWithGridIndex[] = [
     markerNumber: 'M909',
     colorName: 'Magenta',
     colorHex: '#FF00FF',
-    brand: 'Faber-Castell',
+    brandName: 'Faber-Castell',
     quantity: 1,
     gridIndex: 2, 
     columnNumber: 8,
@@ -162,14 +170,29 @@ async function main() {
   
   try {
     // Clear existing data 
-    // Delete markers first because they depend on grids
+    // Delete markers first because they depend on grids and brands
     await prisma.marker.deleteMany();
     console.log('Cleared existing marker data');
     
     await prisma.grid.deleteMany();
     console.log('Cleared existing grid data');
     
-    // Create grids first
+    await prisma.brand.deleteMany();
+    console.log('Cleared existing brand data');
+    
+    // Create brands first
+    const createdBrands = await Promise.all(
+      brands.map(brand => prisma.brand.create({ data: brand }))
+    );
+    console.log(`Created ${createdBrands.length} brands`);
+    
+    // Create a map of brand name to brand ID for easy lookup
+    const brandMap = new Map();
+    createdBrands.forEach(brand => {
+      brandMap.set(brand.name, brand.id);
+    });
+    
+    // Create grids
     const createdGrids = [];
     for (const grid of grids) {
       const createdGrid = await prisma.grid.create({
@@ -179,7 +202,7 @@ async function main() {
     }
     console.log(`Created ${createdGrids.length} grids`);
     
-    // Insert marker data with grid IDs
+    // Insert marker data with grid IDs and brand IDs
     const createdMarkers = [];
     for (const marker of markers) {
       // Make sure gridIndex is within the range of created grids
@@ -187,13 +210,17 @@ async function main() {
         // Get the appropriate grid ID based on the index
         const gridId = createdGrids[marker.gridIndex].id;
         
-        // Remove the gridIndex field and replace with gridId
-        const { gridIndex, ...markerData } = marker;
+        // Get the brand ID from our map
+        const brandId = brandMap.get(marker.brandName);
+        
+        // Remove the gridIndex and brandName fields and replace with gridId and brandId
+        const { gridIndex, brandName, ...markerData } = marker;
         
         const createdMarker = await prisma.marker.create({
           data: {
             ...markerData,
             gridId,
+            brandId,
           },
         });
         

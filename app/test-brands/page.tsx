@@ -3,9 +3,14 @@
 import { useState, useEffect } from 'react';
 
 export default function TestBrandsPage() {
-  const [brands, setBrands] = useState([]);
+  interface Brand {
+    id: string;
+    name: string;
+  }
+
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchBrands() {
@@ -20,7 +25,11 @@ export default function TestBrandsPage() {
         setError(null);
       } catch (err) {
         console.error('Error fetching brands:', err);
-        setError(err.message);
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError('Unknown error');
+        }
       } finally {
         setLoading(false);
       }
@@ -32,15 +41,15 @@ export default function TestBrandsPage() {
   return (
     <div className="p-8">
       <h1 className="text-2xl font-bold mb-4">Test Brands API</h1>
-      
+
       {loading && <p>Loading brands...</p>}
-      
+
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
           Error: {error}
         </div>
       )}
-      
+
       {!loading && !error && (
         <div>
           <h2 className="text-xl font-semibold mb-2">Brands ({brands.length})</h2>
