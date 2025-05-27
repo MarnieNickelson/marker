@@ -92,8 +92,13 @@ export default function ImportPage() {
           // New format with colorHex and brand
           [markerNumber, colorName, colorHex, brand, gridName, columnNumber, rowNumber] = parts;
           
+          // Auto-fix hex color format by adding # if missing
+          if (colorHex && !colorHex.startsWith('#')) {
+            colorHex = '#' + colorHex;
+          }
+          
           // Validate hex color format
-          if (!colorHex.startsWith('#') || (colorHex.length !== 4 && colorHex.length !== 7)) {
+          if (!colorHex || (colorHex.length !== 4 && colorHex.length !== 7)) {
             colorHex = '#000000'; // Default to black if invalid
           }
         } else {
@@ -164,7 +169,19 @@ export default function ImportPage() {
       }
       
       // Success
-      toast.success(`Successfully imported ${result.imported} markers`);
+      const messages = [];
+      if (result.imported > 0) {
+        messages.push(`${result.imported} markers created`);
+      }
+      if (result.updated > 0) {
+        messages.push(`${result.updated} markers updated`);
+      }
+      
+      const successMessage = messages.length > 0 
+        ? `Successfully processed: ${messages.join(', ')}`
+        : 'Import completed successfully';
+        
+      toast.success(successMessage);
       setImportText('');
       
     } catch (error) {

@@ -14,6 +14,19 @@ const getContrastingTextColor = (hexColor: string): string => {
   return luminance > 0.5 ? '#000000' : '#FFFFFF';
 };
 
+// Helper function to check if a string is a valid hex color code
+const isHexColorCode = (str: string): boolean => {
+  return /^#?([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(str);
+};
+
+// Helper function to normalize hex color (ensure it has # prefix)
+const normalizeHexColor = (hexColor: string): string => {
+  if (!hexColor.startsWith('#')) {
+    return `#${hexColor}`;
+  }
+  return hexColor;
+};
+
 const SearchMarkers: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Marker[]>([]);
@@ -22,6 +35,7 @@ const SearchMarkers: React.FC = () => {
   const [grids, setGrids] = useState<Grid[]>([]);
   const [sameMarkers, setSameMarkers] = useState<Marker[]>([]);
   const [loadingSameMarkers, setLoadingSameMarkers] = useState(false);
+  const [locationCounts, setLocationCounts] = useState<{[key: string]: number}>({});
 
   // Fetch all grids on component mount
   useEffect(() => {
@@ -42,6 +56,27 @@ const SearchMarkers: React.FC = () => {
     fetchGrids();
   }, []);
 
+  const fetchLocationCounts = async (markers: Marker[]) => {
+    const counts: {[key: string]: number} = {};
+    
+    // Create a batch of promises to fetch location counts for each marker
+    const promises = markers.map(async (marker) => {
+      try {
+        const response = await fetch(`/api/markers/locations?markerNumber=${encodeURIComponent(marker.markerNumber)}&colorName=${encodeURIComponent(marker.colorName)}&brandId=${marker.brandId || ''}`);
+        if (!response.ok) return;
+        
+        const data = await response.json();
+        counts[marker.id] = data.length;
+      } catch (error) {
+        console.error(`Error fetching location count for marker ${marker.id}:`, error);
+      }
+    });
+    
+    // Wait for all fetches to complete
+    await Promise.all(promises);
+    setLocationCounts(counts);
+  };
+
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -52,7 +87,11 @@ const SearchMarkers: React.FC = () => {
     setLoading(true);
     
     try {
-      const response = await fetch(`/api/markers/search?q=${encodeURIComponent(searchQuery)}`);
+      // Format the query appropriately
+      const formattedQuery = searchQuery.trim();
+      const isHexSearch = isHexColorCode(formattedQuery);
+      
+      const response = await fetch(`/api/markers/search?q=${encodeURIComponent(formattedQuery)}`);
       const data = await response.json();
       
       if (!response.ok) {
@@ -63,14 +102,45 @@ const SearchMarkers: React.FC = () => {
       setSelectedMarker(null);
       
       if (data.length === 0) {
-        toast.error('No markers found matching your search');
+        if (isHexSearch) {
+          toast.error(`No markers found with color code ${normalizeHexColor(formattedQuery)}`);
+        } else {
+          toast.error('No markers found matching your search');
+        }
       } else if (data.length === 1) {
         // Automatically select the marker if only one is found
-        setSelectedMarker(data[0]);
-        toast.success('1 marker found');
+        const singleMarker = data[0];
+        setSelectedMarker(singleMarker);
+        
+        // Immediately fetch locations for the single marker
+        try {
+          const locResponse = await fetch(`/api/markers/locations?markerNumber=${encodeURIComponent(singleMarker.markerNumber)}&colorName=${encodeURIComponent(singleMarker.colorName)}&brandId=${singleMarker.brandId || ''}`);
+          if (locResponse.ok) {
+            const locData = await locResponse.json();
+            setSameMarkers(locData);
+            // Also update the locationCounts for this marker
+            setLocationCounts({ [singleMarker.id]: locData.length });
+          }
+        } catch (error) {
+          console.error('Error fetching single marker locations:', error);
+        }
+        
+        if (isHexSearch) {
+          toast.success(`1 marker found with color code ${normalizeHexColor(formattedQuery)}`);
+        } else {
+          toast.success('1 marker found');
+        }
       } else {
-        toast.success(`${data.length} markers found`);
+        if (isHexSearch) {
+          toast.success(`${data.length} markers found with color code ${normalizeHexColor(formattedQuery)}`);
+        } else {
+          toast.success(`${data.length} markers found`);
+        }
+        
+        // Fetch location counts for all returned markers when multiple
+        await fetchLocationCounts(data);
       }
+      
     } catch (err) {
       toast.error((err as Error).message);
       setSearchResults([]);
@@ -125,17 +195,35 @@ const SearchMarkers: React.FC = () => {
       >
         <div className="relative flex-grow">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-            </svg>
+            {isHexColorCode(searchQuery) ? (
+              <div 
+                className="h-5 w-5 rounded-full"
+                style={{ 
+                  backgroundColor: searchQuery.startsWith('#') ? searchQuery : `#${searchQuery}`,
+                  border: '1px solid #e5e7eb'
+                }}
+                title="Searching by hex color"
+              />
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+              </svg>
+            )}
           </div>
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by marker number, color name, or brand..."
+            placeholder="Search by marker number, color name, hex code (#F5A623), or brand..."
             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
           />
+          {isHexColorCode(searchQuery) && (
+            <div className="absolute inset-y-0 right-0 pr-8 flex items-center">
+              <div className="bg-gray-100 rounded-md px-2 py-1 text-xs text-gray-600">
+                Searching by hex color
+              </div>
+            </div>
+          )}
         </div>
         <button
           type="submit"
@@ -201,6 +289,7 @@ const SearchMarkers: React.FC = () => {
                           backgroundColor: marker.colorHex,
                           border: '1px solid #e5e7eb'
                         }}
+                        title={normalizeHexColor(marker.colorHex)}
                       />
                     </div>
                     <div className="flex justify-between items-center mt-2">
@@ -211,6 +300,18 @@ const SearchMarkers: React.FC = () => {
                         {marker.brand?.name || 'No brand'}
                       </span>
                     </div>
+                    <div className="flex justify-between items-center mt-2">
+                      <span className="text-xs text-gray-500">
+                        {normalizeHexColor(marker.colorHex)}
+                      </span>
+                      <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        {locationCounts[marker.id] !== undefined ? `${locationCounts[marker.id]} ${locationCounts[marker.id] === 1 ? 'location' : 'locations'}` : '...'}
+                      </span>
+                    </div>
                     <p className="text-xs text-gray-500 mt-2 flex items-center">
                       <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -218,11 +319,6 @@ const SearchMarkers: React.FC = () => {
                       </svg>
                       {findGridById(marker.gridId)?.name || 'Unknown grid'} ({marker.columnNumber}, {marker.rowNumber})
                     </p>
-                    {marker.brand && (
-                      <p className="text-xs text-gray-500 mt-1 italic">
-                        {marker.brand.name}
-                      </p>
-                    )}
                   </motion.div>
                 ))}
               </div>
@@ -250,8 +346,25 @@ const SearchMarkers: React.FC = () => {
                                 backgroundColor: selectedMarker.colorHex,
                                 border: '1px solid #e5e7eb'
                               }}
+                              title={selectedMarker.colorHex}
                             />
                             <span className="text-sm text-gray-600">{selectedMarker.colorName}</span>
+                            
+                            {/* Display hex color code with a copy button */}
+                            <div 
+                              className="ml-2 bg-gray-50 px-2 py-1 rounded-md text-xs flex items-center cursor-pointer hover:bg-gray-100"
+                              onClick={() => {
+                                const hexColor = normalizeHexColor(selectedMarker.colorHex);
+                                navigator.clipboard.writeText(hexColor);
+                                toast.success(`Copied ${hexColor} to clipboard`);
+                              }}
+                              title="Click to copy hex code"
+                            >
+                              <span className="mr-1">{normalizeHexColor(selectedMarker.colorHex)}</span>
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                              </svg>
+                            </div>
                           </div>
                           {selectedMarker.brand && (
                             <p className="text-sm text-gray-500 mt-1">
@@ -259,13 +372,13 @@ const SearchMarkers: React.FC = () => {
                             </p>
                           )}
                           <p className="text-sm text-blue-600 mt-2 font-medium">
-                            Total Markers: {sameMarkers.length} {sameMarkers.length > 1 ? 'locations' : 'location'}
+                            Total Markers: {locationCounts[selectedMarker.id] !== undefined ? locationCounts[selectedMarker.id] : (sameMarkers.length > 0 ? sameMarkers.length : '...')} {(locationCounts[selectedMarker.id] || sameMarkers.length) > 1 ? 'locations' : 'location'}
                           </p>
                         </div>
                         
                         <div className="bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
                           <p className="text-sm font-medium text-gray-800 mb-2">
-                            Locations ({loadingSameMarkers ? '...' : sameMarkers.length})
+                            Locations ({loadingSameMarkers ? '...' : sameMarkers.length > 0 ? sameMarkers.length : '0'})
                           </p>
                           
                           {loadingSameMarkers ? (

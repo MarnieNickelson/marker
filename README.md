@@ -11,7 +11,7 @@ A modern web application built with Next.js, TypeScript, and PostgreSQL to track
 - **Delete Markers**: Remove markers that are no longer in your collection
 - **Bulk Import**: Import multiple markers at once using a CSV format
 - **Visual Tracking**: Interactive grid visualization showing marker locations
-- **Advanced Search**: Find markers quickly by number or color name
+- **Advanced Search**: Find markers quickly by number, color name, hex color code, or brand
 - **Color Coding**: Markers are color-coded based on their color names for easier identification
 - **Statistics**: View distribution statistics about your marker collection
 - **Responsive Design**: Works on desktop, tablet, and mobile devices

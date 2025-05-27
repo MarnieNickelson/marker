@@ -138,7 +138,7 @@ export default function GridOverviewPage() {
             </a>
           </div>
         ) : (
-          <div className="grid md:grid-cols-[300px_1fr] gap-6">
+          <div className="grid lg:grid-cols-[300px_1fr] gap-6">
             {/* Grid selection sidebar */}
             <div className="bg-white rounded-xl shadow-md overflow-hidden">
               <div className="p-4 bg-primary-600 text-white">
@@ -242,8 +242,8 @@ const GridWithAllMarkers = ({ grid, markers }: { grid: GridType; markers: Marker
     header: isEven ? 'bg-primary-600 text-white' : 'bg-accent-600 text-white',
   };
 
-  // Create grid template columns style
-  const gridTemplateColumns = `auto repeat(${grid.columns}, minmax(44px, 1fr))`;
+  // Create grid template columns style - make it more responsive
+  const gridTemplateColumns = `auto repeat(${grid.columns}, minmax(40px, 60px))`;
 
   return (
     <motion.div 
@@ -255,10 +255,14 @@ const GridWithAllMarkers = ({ grid, markers }: { grid: GridType; markers: Marker
       <h3 className={`text-lg font-semibold text-white py-2 px-4 ${gridColor.header}`}>
         {grid.name}
       </h3>
-      <div className="overflow-x-auto p-2">
+      <div className="p-2">
         <div 
           className={`grid ${gridColor.bg} rounded-lg`}
-          style={{ gridTemplateColumns }}
+          style={{ 
+            gridTemplateColumns,
+            maxWidth: '100%',
+            minWidth: 'fit-content'
+          }}
         >
           {/* Column headers */}
           <div className="h-10 flex items-center justify-center font-bold"></div>
@@ -287,11 +291,11 @@ const GridWithAllMarkers = ({ grid, markers }: { grid: GridType; markers: Marker
                 return (
                   <div 
                     key={`${row}-${col}`}
-                    className={`h-11 w-11 border border-gray-200 flex items-center justify-center rounded-md m-0.5 transition-all hover:scale-105 tooltip-container`}
+                    className={`h-12 w-12 border border-gray-200 flex items-center justify-center rounded-md m-0.5 transition-all hover:scale-105 tooltip-container`}
                   >
                     {marker ? (
                       <div 
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-xs relative"
+                        className="w-9 h-9 rounded-full flex items-center justify-center text-xs relative"
                         style={{ 
                           backgroundColor: marker.colorHex,
                           color: getContrastTextColor(marker.colorHex)
