@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Marker, Grid } from '../types/marker';
 import GridComponent from './Grid';
 import toast from 'react-hot-toast';
+import { fetchWithAuth } from '../utils/api';
 
 // Helper function to determine if text should be white or black based on background color
 const getContrastingTextColor = (hexColor: string): string => {
@@ -40,16 +41,9 @@ const SearchMarkers: React.FC = () => {
   // Fetch all grids on component mount
   useEffect(() => {
     const fetchGrids = async () => {
-      try {
-        const response = await fetch('/api/grids');
-        if (!response.ok) {
-          throw new Error('Failed to load grids');
-        }
-        const data = await response.json();
+      const data = await fetchWithAuth<Grid[]>('/api/grids');
+      if (data) {
         setGrids(data);
-      } catch (error) {
-        console.error('Error loading grids:', error);
-        toast.error('Failed to load storage grids');
       }
     };
 
@@ -61,14 +55,9 @@ const SearchMarkers: React.FC = () => {
     
     // Create a batch of promises to fetch location counts for each marker
     const promises = markers.map(async (marker) => {
-      try {
-        const response = await fetch(`/api/markers/locations?markerNumber=${encodeURIComponent(marker.markerNumber)}&colorName=${encodeURIComponent(marker.colorName)}&brandId=${marker.brandId || ''}`);
-        if (!response.ok) return;
-        
-        const data = await response.json();
+      const data = await fetchWithAuth<Marker[]>(`/api/markers/locations?markerNumber=${encodeURIComponent(marker.markerNumber)}&colorName=${encodeURIComponent(marker.colorName)}&brandId=${marker.brandId || ''}`);
+      if (data) {
         counts[marker.id] = data.length;
-      } catch (error) {
-        console.error(`Error fetching location count for marker ${marker.id}:`, error);
       }
     });
     
@@ -91,11 +80,11 @@ const SearchMarkers: React.FC = () => {
       const formattedQuery = searchQuery.trim();
       const isHexSearch = isHexColorCode(formattedQuery);
       
-      const response = await fetch(`/api/markers/search?q=${encodeURIComponent(formattedQuery)}`);
-      const data = await response.json();
+      const data = await fetchWithAuth<Marker[]>(`/api/markers/search?q=${encodeURIComponent(formattedQuery)}`);
       
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to search markers');
+      if (!data) {
+        setSearchResults([]);
+        return;
       }
       
       setSearchResults(data);
@@ -113,16 +102,14 @@ const SearchMarkers: React.FC = () => {
         setSelectedMarker(singleMarker);
         
         // Immediately fetch locations for the single marker
-        try {
-          const locResponse = await fetch(`/api/markers/locations?markerNumber=${encodeURIComponent(singleMarker.markerNumber)}&colorName=${encodeURIComponent(singleMarker.colorName)}&brandId=${singleMarker.brandId || ''}`);
-          if (locResponse.ok) {
-            const locData = await locResponse.json();
-            setSameMarkers(locData);
-            // Also update the locationCounts for this marker
-            setLocationCounts({ [singleMarker.id]: locData.length });
-          }
-        } catch (error) {
-          console.error('Error fetching single marker locations:', error);
+        const locData = await fetchWithAuth<Marker[]>(
+          `/api/markers/locations?markerNumber=${encodeURIComponent(singleMarker.markerNumber)}&colorName=${encodeURIComponent(singleMarker.colorName)}&brandId=${singleMarker.brandId || ''}`
+        );
+        
+        if (locData) {
+          setSameMarkers(locData);
+          // Also update the locationCounts for this marker
+          setLocationCounts({ [singleMarker.id]: locData.length });
         }
         
         if (isHexSearch) {
@@ -142,7 +129,6 @@ const SearchMarkers: React.FC = () => {
       }
       
     } catch (err) {
-      toast.error((err as Error).message);
       setSearchResults([]);
     } finally {
       setLoading(false);
@@ -154,20 +140,16 @@ const SearchMarkers: React.FC = () => {
     
     // Fetch all markers with the same marker number, color, and brand
     setLoadingSameMarkers(true);
-    try {
-      const response = await fetch(`/api/markers/locations?markerNumber=${encodeURIComponent(marker.markerNumber)}&colorName=${encodeURIComponent(marker.colorName)}&brandId=${marker.brandId || ''}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch marker locations');
-      }
-      
-      const data = await response.json();
+    
+    const data = await fetchWithAuth<Marker[]>(
+      `/api/markers/locations?markerNumber=${encodeURIComponent(marker.markerNumber)}&colorName=${encodeURIComponent(marker.colorName)}&brandId=${marker.brandId || ''}`
+    );
+    
+    if (data) {
       setSameMarkers(data);
-    } catch (error) {
-      console.error('Error fetching marker locations:', error);
-      toast.error('Failed to load all locations for this marker');
-    } finally {
-      setLoadingSameMarkers(false);
     }
+    
+    setLoadingSameMarkers(false);
   };
   
   // Find the grid by ID

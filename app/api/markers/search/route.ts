@@ -24,18 +24,20 @@ export async function GET(request: Request) {
     if (isHexCode) {
       // For hex code search, normalize the hex code (remove # if present and convert to lowercase)
       const normalizedHex = query.replace('#', '').toLowerCase();
+      const hexWithHash = `#${normalizedHex}`;
       
-      // The database might store it with or without the # prefix, so search for both
+      // MySQL is case-insensitive by default, so we don't need mode: 'insensitive'
       criteria = [
-        { colorHex: { equals: normalizedHex, mode: 'insensitive' } },
-        { colorHex: { equals: `#${normalizedHex}`, mode: 'insensitive' } }
+        { colorHex: { equals: normalizedHex } },
+        { colorHex: { equals: hexWithHash } }
       ];
     } else {
-      // Regular search criteria
+      // Regular search criteria - MySQL is case-insensitive by default for LIKE operations
+      const lowerQuery = query.toLowerCase();
       criteria = [
-        { markerNumber: { contains: query, mode: 'insensitive' } },
-        { colorName: { contains: query, mode: 'insensitive' } },
-        { brand: { name: { contains: query, mode: 'insensitive' } } }
+        { markerNumber: { contains: lowerQuery } },
+        { colorName: { contains: lowerQuery } },
+        { brand: { name: { contains: lowerQuery } } }
       ];
     }
     
