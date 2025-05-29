@@ -1,6 +1,6 @@
 # Migrating from PostgreSQL to MySQL
 
-This guide will help you migrate your Marker Tracker application from PostgreSQL to MySQL (for Hostinger deployment).
+This guide will help you migrate your Inkventory application from PostgreSQL to MySQL (for Hostinger deployment).
 
 ## 1. Update Prisma Schema
 

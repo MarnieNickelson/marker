@@ -9,6 +9,10 @@ const nextConfig = {
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
+  images: {
+    domains: [],
+    unoptimized: process.env.NODE_ENV === 'development',
+  },
 };
 
 module.exports = nextConfig;

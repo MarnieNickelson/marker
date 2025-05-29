@@ -1,8 +1,8 @@
-# Marker Tracker App
+# Inkventory
 
 A modern web application built with Next.js, TypeScript, and MySQL to track markers and their storage locations in organized grids. This application helps users manage their marker collections by providing a visual interface for tracking the location of each marker in storage grids.
 
-![Marker Tracker](https://via.placeholder.com/800x400?text=Marker+Tracker+App)
+![Inkventory](/public/inkventory-logo.png)
 
 ## Features
 
@@ -34,7 +34,7 @@ A modern web application built with Next.js, TypeScript, and MySQL to track mark
    - Create a MySQL database for the application
    - Update the `.env` file with your database connection URL:
      ```
-     DATABASE_URL="mysql://username:password@localhost:3306/marker_tracker"
+     DATABASE_URL="mysql://username:password@localhost:3306/inkventory"
      ```
    - Replace `username`, `password`, and other parameters with your actual database credentials
    

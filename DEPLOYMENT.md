@@ -1,6 +1,6 @@
-# Deployment Guide for Marker Tracker
+# Deployment Guide for Inkventory
 
-This document provides instructions for deploying the Marker Tracker application to a production environment.
+This document provides instructions for deploying the Inkventory application to a production environment.
 
 ## Prerequisites
 

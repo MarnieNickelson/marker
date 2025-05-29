@@ -161,7 +161,7 @@ export default function BrandsPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
       >
-        <h1 className="text-2xl font-bold text-primary-800 mb-6">Manage Marker Brands</h1>
+        <h1 className="text-2xl font-bold text-primary-800 mb-6">Manage Brands</h1>
         
         {/* Add new brand form */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-8 border border-gray-200">

@@ -1,13 +1,13 @@
-# Next steps to run the Marker Tracker application
+# Next steps to run the Inkventory application
 
-Follow these steps to get your Marker Tracker application up and running:
+Follow these steps to get your Inkventory application up and running:
 
 1. **Set up the PostgreSQL database:**
    - Install PostgreSQL if you haven't already
    - Create a new database for your application
    - Update your `.env` file with your database connection string
    ```
-   DATABASE_URL="postgresql://username:password@localhost:5432/marker_tracker?schema=public"
+   DATABASE_URL="postgresql://username:password@localhost:5432/inkventory?schema=public"
    ```
 
 2. **Push the database schema:**

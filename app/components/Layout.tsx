@@ -270,7 +270,7 @@ const accountItems = [
     ),
   },
   {
-    name: 'Import',
+    name: 'Import/Export',
     href: '/import',
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -311,10 +311,10 @@ const accountItems = [
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
               <Link href="/" className="flex items-center group">
-                <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-secondary-600 text-white font-bold text-xl mr-3 shadow-md">
-                  MT
+                <div className="flex items-center justify-center w-10 h-10 rounded-lg mr-3 shadow-md">
+                  <img src="/inkventory-icon.png" alt="Inkventory" className="w-10 h-10" />
                 </div>
-                <h1 className="text-2xl font-bold text-black">Marker Tracker</h1>
+                <h1 className="text-2xl font-bold text-black">Inkventory</h1>
               </Link>
             </div>
             
@@ -528,7 +528,7 @@ const accountItems = [
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
           <div className="flex justify-center">
             <p className="text-gray-500 text-sm">
-              Marker Tracker App © {new Date().getFullYear()}
+              Inkventory © {new Date().getFullYear()}
             </p>
           </div>
         </div>

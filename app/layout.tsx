@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Marker Tracker",
-  description: "A tool for tracking markers",
+  title: "Inkventory",
+  description: "Marker Management and Organization System",
 };
 
 export default function RootLayout({

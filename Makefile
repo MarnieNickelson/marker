@@ -1,6 +1,6 @@
-# Marker Tracker Makefile
+# Inkventory Makefile
 #
-# This Makefile provides convenient commands for working with the Marker Tracker application.
+# This Makefile provides convenient commands for working with the Inkventory application.
 # Run 'make help' to see available commands.
 
 .PHONY: help dev build start lint test test-watch db-migrate db-push db-studio db-seed clean install
@@ -15,7 +15,7 @@ YELLOW = \033[0;33m
 RESET = \033[0m
 
 help: ## Show this help
-	@echo "$(BLUE)Marker Tracker Makefile$(RESET)"
+	@echo "$(BLUE)Inkventory Makefile$(RESET)"
 	@echo "$(YELLOW)Usage:$(RESET) make [target]"
 	@echo ""
 	@echo "$(YELLOW)Available targets:$(RESET)"

@@ -14,7 +14,7 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 
-console.log('🚀 MySQL Migration Helper for Marker Tracker');
+console.log('🚀 MySQL Migration Helper for Inkventory');
 console.log('============================================');
 
 const runCommand = (command, message) => {

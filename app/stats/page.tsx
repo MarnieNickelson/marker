@@ -24,6 +24,7 @@ export default function StatsPage() {
   const [stats, setStats] = useState<MarkerStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [grids, setGrids] = useState<Grid[]>([]);
+  const [colorsExpanded, setColorsExpanded] = useState(false); // New state for collapsing colors section
 
   useEffect(() => {
     const fetchData = async () => {
@@ -205,29 +206,43 @@ export default function StatsPage() {
 
             {stats && stats.colorCounts && (
               <motion.div
-                className="bg-white p-6 rounded-xl shadow-md border border-gray-100"
+                className="bg-white p-6 rounded-xl shadow-md border border-gray-100 mb-6"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.3 }}
               >
-                <h3 className="text-xl font-semibold mb-4 text-gray-800">Markers by Color</h3>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {Object.entries(stats.colorCounts).map(([colorName, count], index) => (
-                    <motion.div
-                      key={colorName}
-                      className={`p-4 rounded-lg border ${getColorClass(colorName)}`}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.3, delay: 0.1 + (index * 0.05) }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">{colorName}</span>
-                        <span className="text-lg font-semibold text-gray-600">{count}</span>
-                      </div>
-                    </motion.div>
-                  ))}
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xl font-semibold text-gray-800">Markers by Color</h3>
+                  <button 
+                    onClick={() => setColorsExpanded(!colorsExpanded)} 
+                    className="px-3 py-1 bg-primary-100 text-primary-700 rounded-md hover:bg-primary-200 transition-colors"
+                  >
+                    {colorsExpanded ? 'Collapse' : 'Expand'}
+                  </button>
                 </div>
+                
+                {colorsExpanded && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {Object.entries(stats.colorCounts).map(([colorName, count], index) => (
+                      <motion.div
+                        key={colorName}
+                        className={`p-4 rounded-lg border ${getColorClass(colorName)}`}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.3, delay: 0.1 + (index * 0.05) }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{colorName}</span>
+                          <span className="text-lg font-semibold text-gray-600">{count}</span>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+                
+                {!colorsExpanded && (
+                  <p className="text-gray-500">Click Expand to view all {Object.keys(stats.colorCounts).length} colors</p>
+                )}
               </motion.div>
             )}
 
