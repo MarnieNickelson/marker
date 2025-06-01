@@ -50,8 +50,8 @@ export default function RegisterPage() {
         throw new Error(data.error || 'Registration failed');
       }
       
-      toast.success('Registration successful! Redirecting to login...');
-      router.push('/login');
+      toast.success('Registration successful! Your account is pending approval. You will receive an email when approved.');
+      router.push('/login?pending=true');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Registration failed');
     } finally {
@@ -69,7 +69,7 @@ export default function RegisterPage() {
       >
         <div className="flex flex-col items-center">
           <img
-            src="/inkventory-logo.png"
+            src="/api/assets/logo"
             alt="Inkventory Logo"
             className="h-24 mb-6"
           />

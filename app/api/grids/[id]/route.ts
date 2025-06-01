@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
 
 type Props = {
   params: Promise<{ id: string }>
@@ -7,19 +9,46 @@ type Props = {
 
 export async function GET(
   request: Request,
-  props: Props
+  { params }: Props
 ) {
   try {
-    const params = await props.params;
-    const id = params.id;
+    const { id } = await params;
+    
+    // Get the current user session
+    const session = await getServerSession(authOptions);
+    
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const userId = session.user.id;
+    const isAdmin = session.user.role === 'admin';
+    
+    // Query parameters
+    const { searchParams } = new URL(request.url);
+    const includeMarkers = searchParams.get('includeMarkers') === 'true';
     
     const grid = await prisma.grid.findUnique({
       where: { id },
-      include: { markers: true } // Include all markers in this grid
+      include: { 
+        markers: includeMarkers,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
     });
     
     if (!grid) {
       return NextResponse.json({ error: 'Grid not found' }, { status: 404 });
+    }
+    
+    // Check if user has access to this grid
+    if (grid.userId !== userId && !isAdmin) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
     
     return NextResponse.json(grid);
@@ -31,12 +60,21 @@ export async function GET(
 
 export async function PUT(
   request: Request,
-  props: Props
+  { params }: Props
 ) {
   try {
-    const params = await props.params;
-    const id = params.id;
+    const { id } = await params;
     const body = await request.json();
+    
+    // Get the current user session
+    const session = await getServerSession(authOptions);
+    
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const userId = session.user.id;
+    const isAdmin = session.user.role === 'admin';
     
     // Validate the input
     const { name, columns, rows } = body;
@@ -45,13 +83,18 @@ export async function PUT(
       return NextResponse.json({ error: 'Grid name is required' }, { status: 400 });
     }
     
-    // Check if grid exists
+    // Check if grid exists and user has access
     const existingGrid = await prisma.grid.findUnique({
       where: { id }
     });
     
     if (!existingGrid) {
       return NextResponse.json({ error: 'Grid not found' }, { status: 404 });
+    }
+    
+    // Check if user has access to this grid
+    if (existingGrid.userId !== userId && !isAdmin) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
     
     // Update grid
@@ -73,11 +116,20 @@ export async function PUT(
 
 export async function DELETE(
   request: Request,
-  props: Props
+  { params }: Props
 ) {
   try {
-    const params = await props.params;
-    const id = params.id;
+    const { id } = await params;
+    
+    // Get the current user session
+    const session = await getServerSession(authOptions);
+    
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    const userId = session.user.id;
+    const isAdmin = session.user.role === 'admin';
     
     // Check if grid exists
     const existingGrid = await prisma.grid.findUnique({
@@ -87,6 +139,11 @@ export async function DELETE(
     
     if (!existingGrid) {
       return NextResponse.json({ error: 'Grid not found' }, { status: 404 });
+    }
+    
+    // Check if user has access to this grid
+    if (existingGrid.userId !== userId && !isAdmin) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
     
     // Check if grid has markers

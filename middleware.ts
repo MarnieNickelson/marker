@@ -5,6 +5,33 @@ import { withAuth } from 'next-auth/middleware';
 export default withAuth(
   // This function runs before each request, and we can modify the response
   function middleware(req) {
+    const token = req.nextauth.token;
+    const path = req.nextUrl.pathname;
+
+    // User must be approved to access any protected routes
+    if (token && !token.isApproved) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Your account is pending approval' }),
+        {
+          status: 403,
+          headers: { 'content-type': 'application/json' },
+        }
+      );
+    }
+
+    // Admin only paths
+    if (path.startsWith('/admin')) {
+      if (token?.role !== 'admin') {
+        return new NextResponse(
+          JSON.stringify({ error: 'Admin access required' }),
+          {
+            status: 403,
+            headers: { 'content-type': 'application/json' },
+          }
+        );
+      }
+    }
+
     // Return NextResponse.next() to allow the request through
     return NextResponse.next();
   },
@@ -26,10 +53,12 @@ export const config = {
      * - login
      * - register
      * - api/auth (NextAuth routes)
+     * - api/assets (public assets endpoint)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - public files
      */
-    '/((?!login|register|api/auth|_next/static|_next/image|favicon.ico).*)',
+    '/((?!login|register|api/auth|api/assets|_next/static|_next/image|favicon.ico|inkventory-logo.png|inkventory-icon.png|file.svg|globe.svg|next.svg|vercel.svg|window.svg).*)',
   ],
 };

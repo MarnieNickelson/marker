@@ -30,13 +30,16 @@ export async function POST(request: Request) {
     const hashedPassword = await bcrypt.hash(password, 10);
     
     // Create the user
+    const isFirstUser = await prisma.user.count() === 0;
+    
     const user = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
-        // First user is admin, others are regular users
-        role: await prisma.user.count() === 0 ? 'admin' : 'user',
+        // First user is admin and auto-approved, others need approval
+        role: isFirstUser ? 'admin' : 'user',
+        isApproved: isFirstUser, // First user is auto-approved
       },
     });
     
@@ -47,6 +50,7 @@ export async function POST(request: Request) {
         name: user.name,
         email: user.email,
         role: user.role,
+        isApproved: user.isApproved,
       },
       { status: 201 }
     );

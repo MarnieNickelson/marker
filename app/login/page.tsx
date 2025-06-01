@@ -24,9 +24,18 @@ function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [pendingApproval, setPendingApproval] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/';
+  const isPending = searchParams.get('pending') === 'true';
+
+  // Show pending approval message if redirected from registration
+  React.useEffect(() => {
+    if (isPending) {
+      toast.success("Registration successful! Your account is pending approval.");
+    }
+  }, [isPending]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,7 +56,41 @@ function LoginForm() {
       });
       
       if (!result?.ok) {
-        throw new Error(result?.error || 'Login failed');
+        // Check specific error messages
+        if (result?.error && result.error.includes('pending approval')) {
+          // Set pending approval state
+          setPendingApproval(true);
+          
+          // Show a more detailed and helpful message for pending approval
+          toast.custom((t) => (
+            <div
+              className={`${
+                t.visible ? 'animate-enter' : 'animate-leave'
+              } max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex flex-col`}
+            >
+              <div className="flex-1 p-4 border-t border-gray-200">
+                <div className="flex items-start">
+                  <div className="ml-3 flex-1">
+                    <p className="text-sm font-medium text-red-600">Account Not Yet Approved</p>
+                    <p className="mt-1 text-sm text-gray-700">
+                      Oops! It looks like your account is still pending approval. Our admin team will review your request soon and grant you access. Please check back later or contact support if you need immediate assistance.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="border-t border-gray-200">
+                <button
+                  onClick={() => toast.dismiss(t.id)}
+                  className="w-full border border-transparent rounded-none rounded-b-lg px-4 py-3 flex items-center justify-center text-sm font-medium text-primary-600 hover:text-primary-500 focus:outline-none"
+                >
+                  Got it
+                </button>
+              </div>
+            </div>
+          ), { duration: 8000 });
+        } else {
+          throw new Error(result?.error || 'Login failed');
+        }
       }
       
       toast.success('Login successful!');
@@ -57,6 +100,8 @@ function LoginForm() {
       router.refresh(); // Refresh to update authentication state
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Login failed');
+      // Reset pending approval state if it's a different error
+      setPendingApproval(false);
     } finally {
       setLoading(false);
     }
@@ -71,15 +116,10 @@ function LoginForm() {
         className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg"
       >
         <div className="flex flex-col items-center">
-          <Image
-            src="/inkventory-logo.png"
+          <img
+            src="/api/assets/logo"
             alt="Inkventory Logo"
-            className="h-24 mb-6 w-auto"
-            width={0}
-            height={0}
-            sizes="100vw"
-            style={{ width: 'auto', height: '6rem' }}
-            priority
+            className="h-24 mb-6"
           />
           <h2 className="text-center text-3xl font-extrabold text-gray-900">Sign in to your account</h2>
           <p className="mt-2 text-center text-sm text-gray-600">
@@ -126,11 +166,21 @@ function LoginForm() {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+              className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${pendingApproval ? 'bg-orange-500 hover:bg-orange-600' : 'bg-primary-600 hover:bg-primary-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? 'Signing in...' : pendingApproval ? 'Account Pending Approval' : 'Sign in'}
             </button>
           </div>
+          
+          {pendingApproval && (
+            <div className="mt-4 p-4 bg-orange-50 border border-orange-300 rounded-md">
+              <h3 className="text-sm font-medium text-orange-800">Account Pending Approval</h3>
+              <p className="mt-2 text-sm text-orange-700">
+                Your account is awaiting administrator approval. You'll receive access once your account has been approved. 
+                Please check back later or contact support if you need immediate assistance.
+              </p>
+            </div>
+          )}
         </form>
         <div className="text-center mt-4">
           <Link href="/" className="text-sm text-gray-600 hover:text-primary-500">

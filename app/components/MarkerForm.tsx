@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { Grid, Brand } from '../types/marker';
 import { useSearchParams } from 'next/navigation';
+import { fetchWithAuth } from '../utils/api';
 
 interface MarkerFormProps {
   onMarkerAdded: () => void;
@@ -38,16 +39,14 @@ const MarkerForm: React.FC<MarkerFormProps> = ({ onMarkerAdded, grids: providedG
     
     const fetchGrids = async () => {
       try {
-        const response = await fetch('/api/grids');
-        if (!response.ok) {
-          throw new Error('Failed to fetch grids');
-        }
-        const data = await response.json();
-        setGrids(data);
-        
-        // Set default gridId if available
-        if (data.length > 0) {
-          setFormData(prev => ({ ...prev, gridId: data[0].id }));
+        const data = await fetchWithAuth<Grid[]>('/api/grids');
+        if (data) {
+          setGrids(data);
+          
+          // Set default gridId if available
+          if (data.length > 0) {
+            setFormData(prev => ({ ...prev, gridId: data[0].id }));
+          }
         }
       } catch (error) {
         console.error('Error fetching grids:', error);
@@ -64,12 +63,10 @@ const MarkerForm: React.FC<MarkerFormProps> = ({ onMarkerAdded, grids: providedG
   useEffect(() => {
     const fetchBrands = async () => {
       try {
-        const response = await fetch('/api/brands');
-        if (!response.ok) {
-          throw new Error('Failed to fetch brands');
+        const data = await fetchWithAuth<Brand[]>('/api/brands');
+        if (data) {
+          setBrands(data);
         }
-        const data = await response.json();
-        setBrands(data);
       } catch (error) {
         console.error('Error fetching brands:', error);
         toast.error('Failed to load marker brands');
@@ -93,7 +90,7 @@ const MarkerForm: React.FC<MarkerFormProps> = ({ onMarkerAdded, grids: providedG
     e.preventDefault();
     setLoading(true);
     
-    const submitPromise = fetch('/api/markers', {
+    const submitPromise = fetchWithAuth('/api/markers', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -18,11 +18,16 @@ async function main() {
           name: 'Administrator',
           email: 'admin@example.com',
           password: hashedPassword,
-          role: 'admin'
+          role: 'admin',
+          isApproved: true // Ensure the admin is approved
         }
       });
       
       console.log(`Admin user created with ID: ${adminUser.id}`);
+      console.log('Credentials:');
+      console.log('  Email: admin@example.com');
+      console.log('  Password: Admin123!');
+      console.log('IMPORTANT: Change this password after first login!');
     } else {
       console.log('Users already exist in the database');
       
@@ -32,12 +37,27 @@ async function main() {
           id: true,
           name: true,
           email: true,
-          role: true
+          role: true,
+          isApproved: true
         }
       });
       
       console.log('Existing users:');
       console.table(users);
+      
+      // Option to approve all existing users as a backup
+      const unapprovedUsers = users.filter(user => !user.isApproved);
+      if (unapprovedUsers.length > 0) {
+        console.log(`Found ${unapprovedUsers.length} unapproved users. Approving them...`);
+        
+        for (const user of unapprovedUsers) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { isApproved: true }
+          });
+          console.log(`Approved user: ${user.email}`);
+        }
+      }
     }
     
   } catch (error) {

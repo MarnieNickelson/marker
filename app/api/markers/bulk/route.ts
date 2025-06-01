@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
 
 interface BulkMarker {
   markerNumber: string;
@@ -21,6 +23,14 @@ interface BulkImportRequest {
 // POST - Bulk import markers
 export async function POST(request: Request) {
   try {
+    // Get the current user session
+    const session = await getServerSession(authOptions);
+    
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const userId = session.user.id;
     const body = await request.json() as BulkImportRequest;
     
     if (!body.markers || !Array.isArray(body.markers) || body.markers.length === 0) {
@@ -51,15 +61,23 @@ export async function POST(request: Request) {
         
         // Treat as brand name - check if we've already processed this brand name
         if (!brandMap.has(brandName)) {
-          // Look for existing brand by name
+          // Look for existing brand by name and userId
           let existingBrand = await prisma.brand.findUnique({
-            where: { name: brandName }
+            where: { 
+              name_userId: {
+                name: brandName,
+                userId: userId
+              }
+            }
           });
           
           if (!existingBrand) {
             // Create new brand
             existingBrand = await prisma.brand.create({
-              data: { name: brandName }
+              data: { 
+                name: brandName,
+                userId: userId
+              }
             });
           }
           

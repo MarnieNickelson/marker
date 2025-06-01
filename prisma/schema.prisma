@@ -15,15 +15,19 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      String   @default("user") // Possible roles: user, admin
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id @default(cuid())
+  name           String
+  email          String   @unique
+  password       String
+  role           String   @default("user") // Possible roles: user, admin, manager
+  isApproved     Boolean  @default(false)
+  lastLogin      DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
   // Relations
-  grids     Grid[]
+  grids          Grid[]
+  brands         Brand[] // Users can have their own brands
+  markers        Marker[] // Users can have their own markers
 }
 
 model Grid {
@@ -41,10 +45,16 @@ model Grid {
 
 model Brand {
   id        String   @id @default(cuid())
-  name      String   @unique
+  name      String   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   markers   Marker[]
+  // Relations - brands belong to users
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  
+  // Make name unique per user
+  @@unique([name, userId])
 }
 
 model Marker {
@@ -59,6 +69,9 @@ model Marker {
   grid         Grid     @relation(fields: [gridId], references: [id])
   columnNumber Int      // 1-15 (or whatever the grid size is)
   rowNumber    Int      // 1-12 (or whatever the grid size is)
+  // User who owns this marker
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
