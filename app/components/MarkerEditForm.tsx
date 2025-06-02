@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { Grid, Marker, Brand } from '../types/marker';
+import { Grid, Marker, Brand, SimpleStorage } from '../types/marker';
 
 interface MarkerEditFormProps {
   marker: Marker;
@@ -18,18 +18,22 @@ const MarkerEditForm: React.FC<MarkerEditFormProps> = ({
 }) => {
   const [grids, setGrids] = useState<Grid[]>(providedGrids || []);
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [simpleStorages, setSimpleStorages] = useState<SimpleStorage[]>([]);
   const [formData, setFormData] = useState({
     markerNumber: marker.markerNumber,
     colorName: marker.colorName,
     colorHex: marker.colorHex,
     brandId: marker.brandId || '', // Use brandId instead of brand
-    gridId: marker.gridId,
-    columnNumber: String(marker.columnNumber),
-    rowNumber: String(marker.rowNumber),
+    storageType: marker.gridId ? 'grid' : 'simple',
+    gridId: marker.gridId || '',
+    columnNumber: String(marker.columnNumber || ''),
+    rowNumber: String(marker.rowNumber || ''),
+    simpleStorageId: marker.simpleStorageId || '',
   });
   const [loading, setLoading] = useState(false);
   const [loadingGrids, setLoadingGrids] = useState(!providedGrids);
   const [loadingBrands, setLoadingBrands] = useState(true);
+  const [loadingSimpleStorages, setLoadingSimpleStorages] = useState(true);
 
   // Fetch available grids if not provided
   useEffect(() => {
@@ -55,6 +59,27 @@ const MarkerEditForm: React.FC<MarkerEditFormProps> = ({
     
     fetchGrids();
   }, [providedGrids]);
+
+  // Fetch simple storage locations
+  useEffect(() => {
+    const fetchSimpleStorages = async () => {
+      try {
+        const response = await fetch('/api/simple-storages');
+        if (!response.ok) {
+          throw new Error('Failed to fetch simple storage locations');
+        }
+        const data = await response.json();
+        setSimpleStorages(data);
+      } catch (error) {
+        console.error('Error fetching simple storage locations:', error);
+        toast.error('Failed to load simple storage locations');
+      } finally {
+        setLoadingSimpleStorages(false);
+      }
+    };
+    
+    fetchSimpleStorages();
+  }, []);
 
   // Fetch available brands
   useEffect(() => {
@@ -89,16 +114,33 @@ const MarkerEditForm: React.FC<MarkerEditFormProps> = ({
     e.preventDefault();
     setLoading(true);
     
+    // Create a data object for API submission
+    const apiData: any = {
+      markerNumber: formData.markerNumber,
+      colorName: formData.colorName,
+      colorHex: formData.colorHex,
+      brandId: formData.brandId || undefined,
+      storageType: formData.storageType,
+    };
+    
+    if (formData.storageType === 'grid') {
+      apiData.gridId = formData.gridId || undefined;
+      apiData.columnNumber = parseInt(formData.columnNumber as string) || 1;
+      apiData.rowNumber = parseInt(formData.rowNumber as string) || 1;
+      apiData.simpleStorageId = null; // Clear simple storage when using grid
+    } else {
+      apiData.simpleStorageId = formData.simpleStorageId || undefined;
+      apiData.gridId = null; // Clear grid data when using simple storage
+      apiData.columnNumber = null;
+      apiData.rowNumber = null;
+    }
+    
     const submitPromise = fetch(`/api/markers/${marker.id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        ...formData,
-        columnNumber: parseInt(formData.columnNumber) || 1,
-        rowNumber: parseInt(formData.rowNumber) || 1,
-      }),
+      body: JSON.stringify(apiData),
     })
     .then(async response => {
       const data = await response.json();
@@ -246,75 +288,134 @@ const MarkerEditForm: React.FC<MarkerEditFormProps> = ({
           )}
         </div>
 
-        {/* Grid selection and position */}
+        {/* Storage Type Selection */}
         <div>
-          <label htmlFor="gridId" className="block text-sm font-medium text-gray-700 mb-1">
-            Storage Grid
+          <label htmlFor="storageType" className="block text-sm font-medium text-gray-700 mb-1">
+            Storage Type
           </label>
-          {loadingGrids ? (
-            <div className="py-3 px-4 bg-gray-50 rounded-lg flex items-center justify-center">
-              <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            </div>
-          ) : grids.length === 0 ? (
-            <div className="py-3 px-4 bg-secondary-50 text-red-700 rounded-lg border border-red-200">
-              No storage grids available. Please create a grid first.
-            </div>
-          ) : (
-            <select
-              id="gridId"
-              name="gridId"
-              value={formData.gridId}
-              onChange={handleChange}
-              className="block w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors"
-              required
-            >
-              {grids.map(grid => (
-                <option key={grid.id} value={grid.id}>
-                  {grid.name} ({grid.columns}x{grid.rows})
-                </option>
-              ))}
-            </select>
-          )}
+          <select
+            id="storageType"
+            name="storageType"
+            value={formData.storageType}
+            onChange={handleChange}
+            className="block w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors"
+          >
+            <option value="grid">Grid Storage</option>
+            <option value="simple">Simple Storage</option>
+          </select>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label htmlFor="columnNumber" className="block text-sm font-medium text-gray-700 mb-1">
-              Column {currentGrid ? `(1-${currentGrid.columns})` : ''}
-            </label>
-            <input
-              type="number"
-              id="columnNumber"
-              name="columnNumber"
-              value={formData.columnNumber}
-              onChange={handleChange}
-              className="block w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors"
-              required
-              min="1"
-              max={currentGrid?.columns || 15}
-            />
-          </div>
+        {formData.storageType === 'grid' ? (
+          <>
+            {/* Grid selection and position */}
+            <div>
+              <label htmlFor="gridId" className="block text-sm font-medium text-gray-700 mb-1">
+                Storage Grid
+              </label>
+              {loadingGrids ? (
+                <div className="py-3 px-4 bg-gray-50 rounded-lg flex items-center justify-center">
+                  <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </div>
+              ) : grids.length === 0 ? (
+                <div className="py-3 px-4 bg-secondary-50 text-red-700 rounded-lg border border-red-200">
+                  No storage grids available. Please create a grid first.
+                </div>
+              ) : (
+                <select
+                  id="gridId"
+                  name="gridId"
+                  value={formData.gridId}
+                  onChange={handleChange}
+                  className="block w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors"
+                  required={formData.storageType === 'grid'}
+                >
+                  <option value="">Select a grid</option>
+                  {grids.map(grid => (
+                    <option key={grid.id} value={grid.id}>
+                      {grid.name} ({grid.columns}x{grid.rows})
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
 
-          <div>
-            <label htmlFor="rowNumber" className="block text-sm font-medium text-gray-700 mb-1">
-              Row {currentGrid ? `(1-${currentGrid.rows})` : ''}
-            </label>
-            <input
-              type="number"
-              id="rowNumber"
-              name="rowNumber"
-              value={formData.rowNumber}
-              onChange={handleChange}
-              className="block w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors"
-              required
-              min="1"
-              max={currentGrid?.rows || 12}
-            />
-          </div>
-        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="columnNumber" className="block text-sm font-medium text-gray-700 mb-1">
+                  Column {currentGrid ? `(1-${currentGrid.columns})` : ''}
+                </label>
+                <input
+                  type="number"
+                  id="columnNumber"
+                  name="columnNumber"
+                  value={formData.columnNumber}
+                  onChange={handleChange}
+                  className="block w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors"
+                  required={formData.storageType === 'grid'}
+                  min="1"
+                  max={currentGrid?.columns || 15}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="rowNumber" className="block text-sm font-medium text-gray-700 mb-1">
+                  Row {currentGrid ? `(1-${currentGrid.rows})` : ''}
+                </label>
+                <input
+                  type="number"
+                  id="rowNumber"
+                  name="rowNumber"
+                  value={formData.rowNumber}
+                  onChange={handleChange}
+                  className="block w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors"
+                  required={formData.storageType === 'grid'}
+                  min="1"
+                  max={currentGrid?.rows || 12}
+                />
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Simple Storage selection */}
+            <div>
+              <label htmlFor="simpleStorageId" className="block text-sm font-medium text-gray-700 mb-1">
+                Simple Storage Location
+              </label>
+              {loadingSimpleStorages ? (
+                <div className="py-3 px-4 bg-gray-50 rounded-lg flex items-center justify-center">
+                  <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </div>
+              ) : simpleStorages.length === 0 ? (
+                <div className="py-3 px-4 bg-secondary-50 text-red-700 rounded-lg border border-red-200">
+                  No simple storage locations available. Please create a simple storage location first.
+                </div>
+              ) : (
+                <select
+                  id="simpleStorageId"
+                  name="simpleStorageId"
+                  value={formData.simpleStorageId}
+                  onChange={handleChange}
+                  className="block w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors"
+                  required={formData.storageType === 'simple'}
+                >
+                  <option value="">Select a simple storage location</option>
+                  {simpleStorages.map(storage => (
+                    <option key={storage.id} value={storage.id}>
+                      {storage.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          </>
+        )}
 
         <div className="flex justify-between gap-4 pt-3">
           <button

@@ -7,6 +7,14 @@ export interface Grid {
   updatedAt: Date;
 }
 
+export interface SimpleStorage {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface Brand {
   id: string;
   name: string;
@@ -19,13 +27,17 @@ export interface Marker {
   markerNumber: string;
   colorName: string;
   colorHex: string;
-  brandId: string | null; // Changed from brand to brandId
+  brandId: string | null;
   brand?: Brand;
   quantity: number;
-  gridId: string;
+  // Grid storage (optional)
+  gridId: string | null;
   grid?: Grid;
-  columnNumber: number;
-  rowNumber: number;
+  columnNumber: number | null;
+  rowNumber: number | null;
+  // Simple storage (optional)
+  simpleStorageId: string | null;
+  simpleStorage?: SimpleStorage;
   createdAt: Date;
   updatedAt: Date;
 }

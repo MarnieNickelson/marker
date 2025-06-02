@@ -56,8 +56,8 @@ export async function GET(request: Request) {
           marker.brand?.name || '',
           marker.quantity.toString(),
           marker.grid?.name || '',
-          marker.columnNumber.toString(),
-          marker.rowNumber.toString()
+          marker.columnNumber?.toString() || '',
+          marker.rowNumber?.toString() || ''
         ].map(field => {
           // Escape fields that contain commas or quotes
           if (field.includes(',') || field.includes('"') || field.includes('\n')) {

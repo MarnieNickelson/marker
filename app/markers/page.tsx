@@ -15,7 +15,7 @@ export default function MarkersPage() {
   const [loading, setLoading] = useState(true);
   const [selectedMarker, setSelectedMarker] = useState<Marker | null>(null);
   const [filterValue, setFilterValue] = useState('');
-  const [sortBy, setSortBy] = useState<'markerNumber' | 'colorName' | 'gridId' | 'brand' | 'grid'>('markerNumber');
+  const [sortBy, setSortBy] = useState<'markerNumber' | 'colorName' | 'gridId' | 'brand' | 'grid' | 'storage'>('markerNumber');
   const [isEditing, setIsEditing] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [sameMarkers, setSameMarkers] = useState<Marker[]>([]);
@@ -38,8 +38,8 @@ export default function MarkersPage() {
       const gridsData = await gridsResponse.json();
       setGrids(gridsData);
       
-      // Fetch markers with grid data
-      const markersResponse = await fetch('/api/markers?includeGrid=true');
+      // Fetch markers with grid and simple storage data
+      const markersResponse = await fetch('/api/markers?includeGrid=true&includeSimpleStorage=true');
       if (!markersResponse.ok) {
         throw new Error('Failed to fetch markers');
       }
@@ -90,8 +90,21 @@ export default function MarkersPage() {
   };
   
   // Find the grid by ID
-  const findGridById = (gridId: string) => {
+  const findGridById = (gridId: string | null) => {
+    if (!gridId) return null;
     return grids.find(grid => grid.id === gridId);
+  };
+  
+  // Helper function to get the storage name for display
+  const getStorageLocationName = (marker: Marker) => {
+    if (marker.gridId && marker.columnNumber !== null && marker.rowNumber !== null) {
+      const grid = findGridById(marker.gridId);
+      return grid ? `${grid.name} (${marker.columnNumber}, ${marker.rowNumber})` : 'Unknown grid';
+    } else if (marker.simpleStorageId && marker.simpleStorage) {
+      return marker.simpleStorage.name;
+    } else {
+      return 'Not stored';
+    }
   };
 
   // Handle edit button click
@@ -179,13 +192,15 @@ export default function MarkersPage() {
     if (!filterValue) return true;
     const lowerFilter = filterValue.toLowerCase();
     
-    const gridName = findGridById(marker.gridId)?.name?.toLowerCase() || '';
+    const gridName = findGridById(marker.gridId || '')?.name?.toLowerCase() || '';
+    const simpleStorageName = marker.simpleStorage?.name?.toLowerCase() || '';
     
     return (
       marker.markerNumber.toLowerCase().includes(lowerFilter) ||
       marker.colorName.toLowerCase().includes(lowerFilter) ||
       marker.brand?.name.toLowerCase().includes(lowerFilter) ||
-      gridName.includes(lowerFilter)
+      gridName.includes(lowerFilter) ||
+      simpleStorageName.includes(lowerFilter)
     );
   });
 
@@ -199,6 +214,40 @@ export default function MarkersPage() {
       const brandNameA = a.brand?.name || '';
       const brandNameB = b.brand?.name || '';
       return brandNameA.localeCompare(brandNameB);
+    } else if (sortBy === 'storage') {
+      // First sort by storage type (grid or simple)
+      const aHasGrid = !!a.gridId;
+      const bHasGrid = !!b.gridId;
+      const aHasSimpleStorage = !!a.simpleStorageId;
+      const bHasSimpleStorage = !!b.simpleStorageId;
+      
+      // Put items with a storage location at the top
+      if (aHasGrid || aHasSimpleStorage) {
+        if (!bHasGrid && !bHasSimpleStorage) return -1;
+      } else if (bHasGrid || bHasSimpleStorage) {
+        return 1;
+      }
+      
+      // Sort grid storage first
+      if (aHasGrid && !bHasGrid) return -1;
+      if (!aHasGrid && bHasGrid) return 1;
+      
+      // If both are grid storage, sort by grid name
+      if (aHasGrid && bHasGrid) {
+        const gridNameA = findGridById(a.gridId)?.name || '';
+        const gridNameB = findGridById(b.gridId)?.name || '';
+        return gridNameA.localeCompare(gridNameB);
+      }
+      
+      // If both are simple storage, sort by storage name
+      if (aHasSimpleStorage && bHasSimpleStorage) {
+        const storageNameA = a.simpleStorage?.name || '';
+        const storageNameB = b.simpleStorage?.name || '';
+        return storageNameA.localeCompare(storageNameB);
+      }
+      
+      // Default sort by marker number if no storage assigned
+      return a.markerNumber.localeCompare(b.markerNumber);
     } else if (sortBy === 'gridId') {
       // Sort by grid first, then by position (row, then column) for left-to-right, top-to-bottom ordering
       const gridNameA = findGridById(a.gridId)?.name || '';
@@ -211,12 +260,18 @@ export default function MarkersPage() {
       }
       
       // If same grid, sort by row first (top to bottom)
-      if (a.rowNumber !== b.rowNumber) {
-        return a.rowNumber - b.rowNumber;
+      // Handle null values by treating them as 0
+      const rowA = a.rowNumber || 0;
+      const rowB = b.rowNumber || 0;
+      if (rowA !== rowB) {
+        return rowA - rowB;
       }
       
       // If same row, sort by column (left to right)
-      return a.columnNumber - b.columnNumber;
+      // Handle null values by treating them as 0
+      const columnA = a.columnNumber || 0;
+      const columnB = b.columnNumber || 0;
+      return columnA - columnB;
     } else {
       return a.markerNumber.localeCompare(b.markerNumber);
     }
@@ -337,6 +392,7 @@ export default function MarkersPage() {
                         <option value="markerNumber">Marker Number</option>
                         <option value="colorName">Color</option>
                         <option value="gridId">Grid</option>
+                        <option value="storage">Storage</option>
                         <option value="brand">Brand</option>
                       </select>
                     </div>
@@ -376,9 +432,24 @@ export default function MarkersPage() {
                           </div>
                         </div>
                         <div className="flex justify-between items-center mt-2 text-xs">
-                          <span className="text-gray-500">
-                            {findGridById(marker.gridId)?.name || 'Unknown grid'} ({marker.columnNumber}, {marker.rowNumber})
-                          </span>
+                          <Link
+                            href={marker.gridId && marker.columnNumber !== null && marker.rowNumber !== null 
+                              ? `/grids/overview/${marker.gridId}` 
+                              : marker.simpleStorageId 
+                                ? `/storage/${marker.simpleStorageId}`
+                                : '#'
+                            }
+                            className={`text-gray-500 hover:text-blue-600 transition-colors ${(!marker.gridId && !marker.simpleStorageId) ? 'pointer-events-none' : ''}`}
+                            onClick={(e) => {
+                              if (!marker.gridId && !marker.simpleStorageId) {
+                                e.preventDefault();
+                              }
+                              // Don't propagate to the parent div onClick
+                              e.stopPropagation();
+                            }}
+                          >
+                            {getStorageLocationName(marker)}
+                          </Link>
                           {marker.brand && (
                             <span className="text-gray-500 italic">{marker.brand.name}</span>
                           )}
@@ -497,11 +568,14 @@ export default function MarkersPage() {
                                   >
                                     <div className="flex items-center justify-between">
                                       <span className="font-medium">
-                                        {findGridById(sameMarker.gridId)?.name || 'Unknown grid'}
+                                        {getStorageLocationName(sameMarker)}
                                       </span>
                                     </div>
                                     <div className="text-gray-500 mt-1">
-                                      Column {sameMarker.columnNumber}, Row {sameMarker.rowNumber}
+                                      {sameMarker.columnNumber !== null && sameMarker.rowNumber !== null
+                                        ? `Column ${sameMarker.columnNumber}, Row ${sameMarker.rowNumber}`
+                                        : sameMarker.simpleStorage ? 'Simple storage' : 'No position'
+                                      }
                                     </div>
                                   </div>
                                 ))}
@@ -556,7 +630,7 @@ export default function MarkersPage() {
                         </h4>
                         
                         <div>
-                          {selectedMarker && findGridById(selectedMarker.gridId) && (
+                          {selectedMarker && selectedMarker.gridId && findGridById(selectedMarker.gridId) && selectedMarker.columnNumber !== null && selectedMarker.rowNumber !== null && (
                             <GridComponent
                               grid={findGridById(selectedMarker.gridId)!}
                               highlightedMarker={selectedMarker}
@@ -565,6 +639,30 @@ export default function MarkersPage() {
                                 rowNumber: selectedMarker.rowNumber,
                               }}
                             />
+                          )}
+                          {selectedMarker && (!selectedMarker.gridId || selectedMarker.columnNumber === null || selectedMarker.rowNumber === null) && (
+                            <div className="text-gray-600">
+                              {selectedMarker.simpleStorageId && selectedMarker.simpleStorage ? (
+                                <div className="p-4 border rounded-md bg-white">
+                                  <h5 className="font-medium text-blue-600 mb-2">{selectedMarker.simpleStorage.name}</h5>
+                                  <p className="text-sm text-gray-500">{selectedMarker.simpleStorage.description || 'No description available'}</p>
+                                  <div className="mt-3">
+                                    <Link 
+                                      href={`/storage/${selectedMarker.simpleStorageId}`}
+                                      className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+                                    >
+                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                      </svg>
+                                      View Storage Location
+                                    </Link>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p>This marker is stored in simple storage but the storage information is not available.</p>
+                              )}
+                            </div>
                           )}
                         </div>
                         
@@ -589,10 +687,18 @@ export default function MarkersPage() {
                                     onClick={() => setSelectedMarker(marker)}
                                   >
                                     <div className="flex justify-between items-center">
-                                      <span className="font-medium text-blue-800">{findGridById(marker.gridId)?.name || 'Unknown grid'}</span>
+                                      <span className="font-medium text-blue-800">
+                                        {marker.gridId && findGridById(marker.gridId)?.name 
+                                          ? findGridById(marker.gridId)?.name 
+                                          : 'Simple Storage'
+                                        }
+                                      </span>
                                     </div>
                                     <div className="text-sm text-gray-600 mt-1">
-                                      Position: Column {marker.columnNumber}, Row {marker.rowNumber}
+                                      {marker.columnNumber !== null && marker.rowNumber !== null
+                                        ? `Position: Column ${marker.columnNumber}, Row ${marker.rowNumber}`
+                                        : 'No grid position'
+                                      }
                                     </div>
                                   </div>
                                 ))

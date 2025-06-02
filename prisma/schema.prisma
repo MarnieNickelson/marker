@@ -26,8 +26,10 @@ model User {
   updatedAt      DateTime @updatedAt
   // Relations
   grids          Grid[]
+  simpleStorages SimpleStorage[] // Simple storage locations
   brands         Brand[] // Users can have their own brands
   markers        Marker[] // Users can have their own markers
+  pages          Page[] // Pages of color collections
 }
 
 model Grid {
@@ -57,6 +59,18 @@ model Brand {
   @@unique([name, userId])
 }
 
+model SimpleStorage {
+  id          String   @id @default(cuid())
+  name        String   // Name like "Drawer A", "Storage Box 1", etc.
+  description String?  // Optional description
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  markers     Marker[]
+  // Relations
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+}
+
 model Marker {
   id           String   @id @default(cuid())
   markerNumber String   // No longer unique, allows the same marker to be in multiple locations
@@ -65,13 +79,50 @@ model Marker {
   brandId      String?  // Foreign key to Brand
   brand        Brand?   @relation(fields: [brandId], references: [id])
   quantity     Int      @default(1) // Number of markers at this location
-  gridId       String   // Foreign key to Grid
-  grid         Grid     @relation(fields: [gridId], references: [id])
-  columnNumber Int      // 1-15 (or whatever the grid size is)
-  rowNumber    Int      // 1-12 (or whatever the grid size is)
+  // Grid storage (optional)
+  gridId       String?  // Foreign key to Grid (now optional)
+  grid         Grid?    @relation(fields: [gridId], references: [id])
+  columnNumber Int?     // 1-15 (or whatever the grid size is) (now optional)
+  rowNumber    Int?     // 1-12 (or whatever the grid size is) (now optional)
+  // Simple storage (optional)
+  simpleStorageId String? // Foreign key to SimpleStorage (optional)
+  simpleStorage   SimpleStorage? @relation(fields: [simpleStorageId], references: [id])
   // User who owns this marker
   userId      String?
   user        User?    @relation(fields: [userId], references: [id])
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  // Relation to PageItems
+  pageItems    PageItem[]
+}
+
+model Page {
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  // Relation to user who owns the page
+  userId      String
+  user        User       @relation(fields: [userId], references: [id])
+  // Relation to page items
+  pageItems   PageItem[]
+}
+
+model PageItem {
+  id           String   @id @default(cuid())
+  markerNumber String   // Marker number for reference
+  colorName    String
+  colorHex     String
+  brandName    String?
+  gridName     String?
+  columnNumber Int?
+  rowNumber    Int?
+  orderIndex   Int      // For custom ordering in the page
+  createdAt    DateTime @default(now())
+  // Relations
+  pageId       String
+  page         Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  markerId     String?
+  marker       Marker?  @relation(fields: [markerId], references: [id])
 }

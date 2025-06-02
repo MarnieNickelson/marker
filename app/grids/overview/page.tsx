@@ -150,10 +150,13 @@ export default function GridOverviewPage() {
 
   // Group markers by their gridId
   const markersByGrid = markers.reduce((acc, marker) => {
-    if (!acc[marker.gridId]) {
-      acc[marker.gridId] = [];
+    const gridId = marker.gridId;
+    if (gridId && !acc[gridId]) {
+      acc[gridId] = [];
     }
-    acc[marker.gridId].push(marker);
+    if (gridId) {
+      acc[gridId].push(marker);
+    }
     return acc;
   }, {} as Record<string, Marker[]>);
 

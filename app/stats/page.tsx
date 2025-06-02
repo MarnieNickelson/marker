@@ -68,10 +68,11 @@ export default function StatsPage() {
           }
           
           // Count by grid
-          if (gridCounts[marker.gridId]) {
-            gridCounts[marker.gridId]++;
+          const gridKey = marker.gridId || 'Simple Storage';
+          if (gridCounts[gridKey]) {
+            gridCounts[gridKey]++;
           } else {
-            gridCounts[marker.gridId] = 1;
+            gridCounts[gridKey] = 1;
           }
           
           // Count by brand

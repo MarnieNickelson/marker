@@ -18,7 +18,9 @@ export async function GET(request: Request) {
     
     const { searchParams } = new URL(request.url);
     const gridId = searchParams.get('gridId');
+    const simpleStorageId = searchParams.get('simpleStorageId');
     const includeGrid = searchParams.get('includeGrid') === 'true';
+    const includeSimpleStorage = searchParams.get('includeSimpleStorage') === 'true';
     const allUsers = searchParams.get('allUsers') === 'true';
     
     // Base query conditions
@@ -41,6 +43,11 @@ export async function GET(request: Request) {
       }
     }
     
+    // Filter by simple storage if specified
+    if (simpleStorageId) {
+      where.simpleStorageId = simpleStorageId;
+    }
+    
     // For admins requesting all markers
     if (isAdmin && allUsers) {
       // No additional filters needed - admin can see all
@@ -49,8 +56,7 @@ export async function GET(request: Request) {
     else {
       where.userId = userId;
     }
-    
-    const markers = await prisma.marker.findMany({
+     const markers = await prisma.marker.findMany({
       where,
       include: {
         grid: includeGrid,
@@ -67,8 +73,41 @@ export async function GET(request: Request) {
         markerNumber: 'asc'
       }
     });
+
+    // Get simple storage data for markers if requested
+    let markersWithStorage = markers;
     
-    return NextResponse.json(markers);
+    if (includeSimpleStorage) {
+      // Go back to using raw queries since we have issues with the model name
+      markersWithStorage = await Promise.all(
+        markers.map(async (marker: any) => {
+          if (marker.simpleStorageId) {
+            try {
+              const storageResult = await prisma.$queryRaw`
+                SELECT id, name, description FROM SimpleStorage WHERE id = ${marker.simpleStorageId}
+              `;
+              const storage = Array.isArray(storageResult) ? storageResult[0] : storageResult;
+              return {
+                ...marker,
+                simpleStorage: storage || null
+              };
+            } catch (error) {
+              console.error('Error fetching simple storage for marker:', error);
+              return {
+                ...marker,
+                simpleStorage: null
+              };
+            }
+          } 
+          return {
+            ...marker,
+            simpleStorage: null
+          };
+        })
+      );
+    }
+
+    return NextResponse.json(markersWithStorage);
   } catch (error) {
     console.error('Error fetching markers:', error);
     return NextResponse.json({ error: 'Failed to fetch markers' }, { status: 500 });
@@ -88,7 +127,21 @@ export async function POST(request: Request) {
     const userId = session.user.id;
     const isAdmin = session.user.role === 'admin';
     
-    const body = await request.json();
+    let body;
+    
+    try {
+      const rawBody = await request.json();
+      
+      // Handle case where body might be double-encoded
+      if (typeof rawBody === 'string') {
+        body = JSON.parse(rawBody);
+      } else {
+        body = rawBody;
+      }
+    } catch (error) {
+      console.error('Error parsing request body:', error);
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
     
     // Validate the input
     const { 
@@ -99,25 +152,84 @@ export async function POST(request: Request) {
       quantity, 
       gridId, 
       columnNumber, 
-      rowNumber 
+      rowNumber,
+      simpleStorageId // New field for simple storage
     } = body;
     
-    if (!markerNumber || !colorName || !gridId || !columnNumber || !rowNumber) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!markerNumber || !colorName) {
+      return NextResponse.json({ error: 'Marker number and color name are required' }, { status: 400 });
     }
     
-    // Verify user has access to this grid
-    const targetGrid = await prisma.grid.findUnique({
-      where: { id: gridId }
-    });
-    
-    if (!targetGrid) {
-      return NextResponse.json({ error: 'Grid not found' }, { status: 404 });
+    // Must have either grid storage or simple storage, but not both
+    if ((!gridId && !simpleStorageId) || (gridId && simpleStorageId)) {
+      return NextResponse.json({ error: 'Either grid storage or simple storage must be specified, but not both' }, { status: 400 });
     }
     
-    // Check user owns the grid or is admin
-    if (targetGrid.userId !== userId && !isAdmin) {
-      return NextResponse.json({ error: 'Access denied to this grid' }, { status: 403 });
+    // If grid storage is specified, validate grid and coordinates
+    if (gridId) {
+      if (!columnNumber || !rowNumber) {
+        return NextResponse.json({ error: 'Column and row numbers are required for grid storage' }, { status: 400 });
+      }
+      
+      // Verify user has access to this grid
+      const targetGrid = await prisma.grid.findUnique({
+        where: { id: gridId }
+      });
+      
+      if (!targetGrid) {
+        return NextResponse.json({ error: 'Grid not found' }, { status: 404 });
+      }
+      
+      // Check user owns the grid or is admin
+      if (targetGrid.userId !== userId && !isAdmin) {
+        return NextResponse.json({ error: 'Access denied to this grid' }, { status: 403 });
+      }
+      
+      // Validate column and row numbers against grid dimensions
+      if (columnNumber < 1 || columnNumber > targetGrid.columns || rowNumber < 1 || rowNumber > targetGrid.rows) {
+        return NextResponse.json(
+          { error: `Position must be within grid dimensions: columns 1-${targetGrid.columns}, rows 1-${targetGrid.rows}` }, 
+          { status: 400 }
+        );
+      }
+      
+      // Check if position is already occupied in the grid
+      const occupiedPosition = await prisma.marker.findFirst({
+        where: { 
+          gridId,
+          columnNumber: parseInt(columnNumber.toString()),
+          rowNumber: parseInt(rowNumber.toString()),
+        }
+      });
+      
+      if (occupiedPosition) {
+        return NextResponse.json(
+          { error: 'This position is already occupied by another marker' }, 
+          { status: 409 }
+        );
+      }
+    }
+    
+    // If simple storage is specified, validate it
+    if (simpleStorageId) {
+      try {
+        const storageResult = await prisma.$queryRaw`
+          SELECT id, userId FROM SimpleStorage WHERE id = ${simpleStorageId}
+        `;
+        const targetSimpleStorage = Array.isArray(storageResult) ? storageResult[0] : storageResult;
+        
+        if (!targetSimpleStorage) {
+          return NextResponse.json({ error: 'Simple storage not found' }, { status: 404 });
+        }
+        
+        // Check user owns the simple storage or is admin
+        if (targetSimpleStorage.userId !== userId && !isAdmin) {
+          return NextResponse.json({ error: 'Access denied to this simple storage' }, { status: 403 });
+        }
+      } catch (error) {
+        console.error('Error validating simple storage:', error);
+        return NextResponse.json({ error: 'Error validating simple storage' }, { status: 500 });
+      }
     }
     
     // If brand is specified, verify it exists
@@ -131,45 +243,34 @@ export async function POST(request: Request) {
       }
     }
     
-    // Validate column and row numbers against grid dimensions
-    if (columnNumber < 1 || columnNumber > targetGrid.columns || rowNumber < 1 || rowNumber > targetGrid.rows) {
-      return NextResponse.json(
-        { error: `Position must be within grid dimensions: columns 1-${targetGrid.columns}, rows 1-${targetGrid.rows}` }, 
-        { status: 400 }
-      );
+    // Create the marker data object
+    const markerData: any = {
+      markerNumber,
+      colorName,
+      colorHex: colorHex || '#000000',
+      brandId: brandId || null,
+      quantity: 1,
+      userId: userId,
+    };
+
+    // Add grid storage fields if specified
+    if (gridId) {
+      markerData.gridId = gridId;
+      markerData.columnNumber = parseInt(columnNumber.toString());
+      markerData.rowNumber = parseInt(rowNumber.toString());
     }
-    
-    // Check if position is already occupied in the grid
-    const occupiedPosition = await prisma.marker.findFirst({
-      where: { 
-        gridId,
-        columnNumber: parseInt(columnNumber.toString()),
-        rowNumber: parseInt(rowNumber.toString()),
-      }
-    });
-    
-    if (occupiedPosition) {
-      return NextResponse.json(
-        { error: 'This position is already occupied by another marker' }, 
-        { status: 409 }
-      );
+
+    // Add simple storage field if specified
+    if (simpleStorageId) {
+      markerData.simpleStorageId = simpleStorageId;
     }
-    
-    // Create the marker (no need to check for duplicate markerNumber)
+
+    // Create the marker
     const newMarker = await prisma.marker.create({
-      data: {
-        markerNumber,
-        colorName,
-        colorHex: colorHex || '#000000',
-        brandId: brandId || null, // Use brandId instead of brand
-        quantity: 1, // Default to 1, quantity will be computed based on instances
-        gridId,
-        columnNumber: parseInt(columnNumber.toString()),
-        rowNumber: parseInt(rowNumber.toString()),
-        userId: userId, // Associate with current user
-      },
+      data: markerData,
       include: {
         brand: true, // Include brand in response
+        grid: true, // Include grid in response
       }
     });
     
