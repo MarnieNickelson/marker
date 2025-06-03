@@ -88,7 +88,14 @@ export default function ColorPage() {
   const getRandomColor = async () => {
     try {
       setLoading(true);
-      const marker = await fetchWithAuth<Marker>('/api/markers/random');
+      
+      // Get the IDs of markers already in history to exclude them
+      const existingIds = colorHistory.map(item => item.id);
+      const excludeParam = existingIds.length > 0 
+        ? `?exclude=${encodeURIComponent(existingIds.join(','))}` 
+        : '';
+      
+      const marker = await fetchWithAuth<Marker>(`/api/markers/random${excludeParam}`);
       
       if (marker) {
         addMarkerToHistory(marker, true);

@@ -173,6 +173,8 @@ export default function EditPageView({ params: paramsPromise }: { params: Promis
   // Generate random colors
   const generateRandomColors = (count: number): PageItem[] => {
     const randomColors: PageItem[] = [];
+    // Create a set of existing color hex codes for quick lookup
+    const existingColorHexes = new Set(items.map(item => item.colorHex.toLowerCase()));
     
     // Color name helper function
     const generateColorName = (hex: string): string => {
@@ -224,22 +226,38 @@ export default function EditPageView({ params: paramsPromise }: { params: Promis
     };
     
     for (let i = 0; i < count; i++) {
-      // Generate a random hex color
-      const hexColor = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
-      const colorName = generateColorName(hexColor);
+      // Generate a unique random hex color that's not already in items
+      let hexColor;
+      let attempts = 0;
+      do {
+        hexColor = '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+        attempts++;
+        // Break after many attempts to prevent infinite loop
+        if (attempts > 100) {
+          break;
+        }
+      } while (existingColorHexes.has(hexColor.toLowerCase()));
       
-      randomColors.push({
-        id: `random-${Date.now()}-${i}`,
-        markerNumber: `R${String(i + 1).padStart(3, '0')}`,
-        colorName: colorName,
-        colorHex: hexColor,
-        brandName: 'Random',
-        gridName: null,
-        columnNumber: null,
-        rowNumber: null,
-        orderIndex: items.length + i,
-        markerId: null
-      });
+      // Only add if we found a unique color
+      if (!existingColorHexes.has(hexColor.toLowerCase())) {
+        const colorName = generateColorName(hexColor);
+        
+        randomColors.push({
+          id: `random-${Date.now()}-${i}`,
+          markerNumber: `R${String(i + 1).padStart(3, '0')}`,
+          colorName: colorName,
+          colorHex: hexColor,
+          brandName: 'Random',
+          gridName: null,
+          columnNumber: null,
+          rowNumber: null,
+          orderIndex: items.length + i,
+          markerId: null
+        });
+        
+        // Add to set of existing colors to prevent duplicates in this batch
+        existingColorHexes.add(hexColor.toLowerCase());
+      }
     }
     
     return randomColors;

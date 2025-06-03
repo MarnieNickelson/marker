@@ -15,15 +15,28 @@ export async function GET(request: Request) {
     
     const userId = session.user.id;
     
-    // Count total markers for the user
-    const totalCount = await prisma.marker.count({
-      where: {
-        userId: userId
+    // Parse the URL to get query parameters
+    const url = new URL(request.url);
+    const excludeParam = url.searchParams.get('exclude');
+    
+    // Create a base query
+    const baseWhere: any = { userId: userId };
+    
+    // Add exclude filter if provided
+    if (excludeParam) {
+      const excludeIds = excludeParam.split(',').filter(id => id.trim() !== '');
+      if (excludeIds.length > 0) {
+        baseWhere.id = { notIn: excludeIds };
       }
+    }
+    
+    // Count total markers for the user with exclusions
+    const totalCount = await prisma.marker.count({
+      where: baseWhere
     });
     
     if (totalCount === 0) {
-      return NextResponse.json({ error: 'No markers found in your inventory' }, { status: 404 });
+      return NextResponse.json({ error: 'No markers found in your inventory (or all markers have been used)' }, { status: 404 });
     }
     
     // Generate a random skip value to get a random marker
@@ -31,9 +44,7 @@ export async function GET(request: Request) {
     
     // Find a random marker
     const randomMarker = await prisma.marker.findFirst({
-      where: {
-        userId: userId
-      },
+      where: baseWhere,
       skip: randomSkip,
       include: {
         brand: true,
