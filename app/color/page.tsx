@@ -369,7 +369,6 @@ export default function ColorPage() {
                     <div className="p-4">
                       <div className="flex justify-between items-center mb-2">
                         <p className="font-semibold text-gray-800">{marker.colorName}</p>
-                        <p className="text-sm text-gray-600">{marker.colorHex}</p>
                       </div>
                       <p className="text-sm text-gray-500 mb-3">
                         {marker.brand?.name || 'No brand'}
@@ -403,11 +402,9 @@ export default function ColorPage() {
                     backgroundColor: currentColor.colorHex,
                     color: getContrastingTextColor(currentColor.colorHex)
                   }}
-                >
-                  <div className="text-center">
+                >                    <div className="text-center">
                     <p className="text-xl font-bold">{currentColor.colorName}</p>
-                    <p className="opacity-80">{currentColor.colorHex}</p>
-                    <p className="text-sm mt-1">{currentColor.brand?.name || 'No brand'} #{currentColor.markerNumber}</p>
+                    <p className="text-sm mt-1">{currentColor.brand?.name || 'No brand'} {currentColor.markerNumber}</p>
                   </div>
                 </div>
               </motion.div>
@@ -463,9 +460,8 @@ export default function ColorPage() {
                           <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Picked</span>
                         )}
                       </div>
-                      <p className="text-sm text-gray-600">{item.colorHex}</p>
                       <div className="flex justify-between items-center mt-1 text-xs text-gray-500">
-                        <span>{item.brandName || 'No brand'} #{item.markerNumber}</span>
+                        <span>{item.brandName || 'No brand'} {item.markerNumber}</span>
                         <span>{new Date(item.timestamp).toLocaleTimeString()}</span>
                       </div>
                       <div className="mt-2 p-2 bg-gray-100 rounded text-xs">
