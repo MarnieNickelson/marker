@@ -26,6 +26,15 @@ export async function GET(request: Request) {
       include: {
         _count: {
           select: { pageItems: true }
+        },
+        pageItems: {
+          orderBy: {
+            orderIndex: 'asc'
+          },
+          select: {
+            colorHex: true,
+            markerNumber: true
+          }
         }
       }
     });

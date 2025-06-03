@@ -7,6 +7,11 @@ import { fetchWithAuth } from '../../utils/api';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 
+interface PageItem {
+  colorHex: string;
+  markerNumber: string;
+}
+
 interface Page {
   id: string;
   title: string;
@@ -16,12 +21,29 @@ interface Page {
   _count?: {
     pageItems: number;
   };
+  pageItems: PageItem[];
 }
 
 export default function PagesPage() {
   const [pages, setPages] = useState<Page[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [tooltip, setTooltip] = useState<{ visible: boolean, text: string, x: number, y: number }>({
+    visible: false,
+    text: '',
+    x: 0,
+    y: 0
+  });
+
+  // Function to determine contrasting text color based on background
+  const getContrastingTextColor = (hexColor: string): string => {
+    const hex = hexColor.replace('#', '');
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.5 ? '#000000' : '#FFFFFF';
+  };
 
   useEffect(() => {
     fetchPages();
@@ -60,6 +82,20 @@ export default function PagesPage() {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
+        {/* Shared tooltip for color swatches */}
+        {tooltip.visible && (
+          <div 
+            className="fixed px-2 py-1 bg-gray-800 text-white text-xs rounded-md shadow-md pointer-events-none z-50"
+            style={{ 
+              left: `${tooltip.x}px`, 
+              top: `${tooltip.y}px`,
+              transform: 'translateX(-50%)'
+            }}
+          >
+            {tooltip.text}
+          </div>
+        )}
+        
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -130,6 +166,57 @@ export default function PagesPage() {
                             {new Date(page.updatedAt).toLocaleDateString()}
                           </span>
                         </div>
+                        
+                        {/* Color Swatches */}
+                        {page.pageItems && page.pageItems.length > 0 && (
+                          <div className="mt-3 w-full">
+                            {/* Using inline-block elements for more predictable layout */}
+                            <div 
+                              style={{
+                                width: "100%",
+                                lineHeight: 0, /* Remove space between rows */
+                                fontSize: 0, /* Remove space between inline blocks */
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: "1px" // Tiny gap between swatches
+                              }}
+                            >
+                              {page.pageItems.map((item, index) => (
+                                <div 
+                                  key={index}
+                                  style={{ 
+                                    backgroundColor: item.colorHex,
+                                    width: "8px", // Increased width to 8px
+                                    height: "16px", // Increased height to 16px
+                                    position: "relative"
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    setTooltip({
+                                      visible: true,
+                                      text: item.markerNumber, // Remove the # symbol
+                                      x: rect.left + window.scrollX + 4, // Center on the swatch
+                                      y: rect.top + window.scrollY - 25
+                                    });
+                                  }}
+                                  onMouseLeave={() => {
+                                    setTooltip(prev => ({ ...prev, visible: false }));
+                                  }}
+                                >
+                                  <div 
+                                    style={{
+                                      position: "absolute",
+                                      inset: 0,
+                                      opacity: 0,
+                                      transition: "opacity 0.15s ease"
+                                    }}
+                                    className="hover:opacity-100 ring-1 ring-white z-10"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </Link>
                     <div className="bg-gray-50 px-6 py-3 flex justify-end space-x-2 border-t">
