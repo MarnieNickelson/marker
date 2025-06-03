@@ -145,33 +145,39 @@ export default function PageView({ params: paramsPromise }: { params: Promise<{ 
                         transition={{ duration: 0.2 }}
                       >
                         <div 
-                          className="h-40 w-full" 
-                          style={{ backgroundColor: item.colorHex }}
-                        ></div>
-                        <div className="p-4">
-                          <div 
-                            className="rounded p-2 mb-2"
+                          className="relative w-full" 
+                          style={{ 
+                            backgroundColor: item.colorHex,
+                            padding: "2rem 1rem"
+                          }}
+                        >
+                          <div className="text-center"
                             style={{ 
-                              backgroundColor: item.colorHex,
                               color: getContrastingTextColor(item.colorHex)
                             }}
                           >
-                            <h3 className="font-semibold text-center">{item.colorName}</h3>
-                            <p className="text-center opacity-90">{item.colorHex}</p>
+                            <h3 className="font-bold text-lg mb-1">{item.colorName}</h3>
+                            <p className="text-sm">
+                              {item.brandName || 'No brand'} · #{item.markerNumber}
+                            </p>
                           </div>
-                          <p className="text-sm text-gray-700">
-                            {item.brandName || 'No brand'} · #{item.markerNumber}
+                        </div>
+                        
+                        <div className="p-4 bg-gray-100">
+                          <div className="flex justify-between items-center mb-2">
+                            <p className="text-sm font-medium text-gray-700">Location:</p>
+                            {item.markerId ? (
+                              <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">Picked</span>
+                            ) : (
+                              <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded-full">Random</span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            {item.gridName 
+                              ? `${item.gridName} · Column ${item.columnNumber} · Row ${item.rowNumber}`
+                              : 'No location information'
+                            }
                           </p>
-                          {item.gridName && (
-                            <div className="mt-2 p-2 bg-gray-100 rounded text-xs">
-                              <p className="font-medium text-gray-700">Location:</p>
-                              <p className="text-gray-600">
-                                {item.gridName} · 
-                                Column {item.columnNumber} · 
-                                Row {item.rowNumber}
-                              </p>
-                            </div>
-                          )}
                         </div>
                       </motion.div>
                     ))}
