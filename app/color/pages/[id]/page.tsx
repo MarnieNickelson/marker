@@ -158,7 +158,7 @@ export default function PageView({ params: paramsPromise }: { params: Promise<{ 
                           >
                             <h3 className="font-bold text-lg mb-1">{item.colorName}</h3>
                             <p className="text-sm">
-                              {item.brandName || 'No brand'} · #{item.markerNumber}
+                              {item.brandName || 'No brand'} · {item.markerNumber}
                             </p>
                           </div>
                         </div>

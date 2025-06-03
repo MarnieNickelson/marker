@@ -461,7 +461,7 @@ export default function EditPageView({ params: paramsPromise }: { params: Promis
                                         <span className="ml-2 bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">Picked</span>
                                       </div>
                                       <p className="text-sm text-gray-500 truncate">
-                                        {marker.brand?.name || 'No brand'} · #{marker.markerNumber}
+                                        {marker.brand?.name || 'No brand'} · {marker.markerNumber}
                                         {marker.grid?.name && ` · ${marker.grid.name} ${marker.columnNumber},${marker.rowNumber}`}
                                       </p>
                                     </div>
@@ -536,7 +536,7 @@ export default function EditPageView({ params: paramsPromise }: { params: Promis
                           )}
                         </div>
                         <p className="text-sm text-gray-600">
-                          {item.brandName || 'No brand'} · #{item.markerNumber}
+                          {item.brandName || 'No brand'} · {item.markerNumber}
                           {item.gridName && ` · ${item.gridName} ${item.columnNumber},${item.rowNumber}`}
                         </p>
                       </div>
