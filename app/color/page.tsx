@@ -267,6 +267,96 @@ export default function ColorPage() {
     return luminance > 0.5 ? '#000000' : '#FFFFFF';
   };
 
+  // Function to determine color family from hex code
+  const getColorFamily = (hex: string): string => {
+    // Remove # if present and validate hex format
+    hex = hex.replace(/^#/, '');
+    if (!/^[0-9A-Fa-f]{6}$/.test(hex)) {
+      return 'unknown';
+    }
+
+    // Convert hex to RGB
+    const r = parseInt(hex.substring(0, 2), 16) / 255;
+    const g = parseInt(hex.substring(2, 4), 16) / 255;
+    const b = parseInt(hex.substring(4, 6), 16) / 255;
+
+    // Find max and min values for RGB
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    
+    // Calculate lightness
+    const lightness = (max + min) / 2;
+    
+    // Calculate saturation
+    let saturation = 0;
+    if (max !== min) {
+      saturation = lightness > 0.5 
+        ? (max - min) / (2 - max - min) 
+        : (max - min) / (max + min);
+    }
+    
+    // Calculate hue
+    let hue = 0;
+    if (max !== min) {
+      if (max === r) {
+        hue = (g - b) / (max - min) + (g < b ? 6 : 0);
+      } else if (max === g) {
+        hue = (b - r) / (max - min) + 2;
+      } else {
+        hue = (r - g) / (max - min) + 4;
+      }
+      hue *= 60;
+    }
+    
+    // Determine color family based on hue, saturation, and lightness
+    if (saturation < 0.1) {
+      if (lightness < 0.15) return 'black';
+      if (lightness > 0.85) return 'white';
+      return 'gray';
+    }
+    
+    // Color families based on hue ranges
+    if (hue < 15) return 'red';
+    if (hue < 45) return 'orange';
+    if (hue < 75) return 'yellow';
+    if (hue < 165) return 'green';
+    if (hue < 195) return 'cyan';
+    if (hue < 255) return 'blue';
+    if (hue < 285) return 'purple';
+    if (hue < 345) return 'pink';
+    return 'red'; // 345-360 is red again
+  };
+
+  // Get a random color from a specific color family
+  const getRandomColorByFamily = async (family: string) => {
+    try {
+      setLoading(true);
+      
+      // Get the IDs of markers already in history to exclude them
+      const existingIds = colorHistory.map(item => item.id);
+      
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (existingIds.length > 0) {
+        params.append('exclude', existingIds.join(','));
+      }
+      params.append('colorFamily', family);
+      
+      const marker = await fetchWithAuth<Marker>(`/api/markers/random?${params.toString()}`);
+      
+      if (marker) {
+        addMarkerToHistory(marker, true);
+        toast.success(`Random ${family} color: ${marker.colorName}`);
+      } else {
+        toast.error(`No ${family} colors found in your inventory`);
+      }
+    } catch (error) {
+      toast.error(`Failed to get random ${family} color. Check your inventory.`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -319,6 +409,92 @@ export default function ColorPage() {
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors duration-200 disabled:bg-gray-400"
                 >
                   {loading ? 'Selecting...' : 'Random Color'}
+                </button>
+              </div>
+            </div>
+            
+            {/* Color Family Random Buttons */}
+            <div className="mt-4">
+              <h3 className="text-md font-medium mb-3">Random Color by Family:</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-2">
+                <button 
+                  onClick={() => getRandomColorByFamily('red')}
+                  disabled={loading}
+                  className="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-3 rounded-md transition-colors duration-200 disabled:opacity-50"
+                >
+                  Red
+                </button>
+                <button 
+                  onClick={() => getRandomColorByFamily('orange')}
+                  disabled={loading}
+                  className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-3 rounded-md transition-colors duration-200 disabled:opacity-50"
+                >
+                  Orange
+                </button>
+                <button 
+                  onClick={() => getRandomColorByFamily('yellow')}
+                  disabled={loading}
+                  className="bg-yellow-400 hover:bg-yellow-500 text-black font-medium py-2 px-3 rounded-md transition-colors duration-200 disabled:opacity-50"
+                >
+                  Yellow
+                </button>
+                <button 
+                  onClick={() => getRandomColorByFamily('green')}
+                  disabled={loading}
+                  className="bg-green-500 hover:bg-green-600 text-white font-medium py-2 px-3 rounded-md transition-colors duration-200 disabled:opacity-50"
+                >
+                  Green
+                </button>
+                <button 
+                  onClick={() => getRandomColorByFamily('cyan')}
+                  disabled={loading}
+                  className="bg-cyan-500 hover:bg-cyan-600 text-white font-medium py-2 px-3 rounded-md transition-colors duration-200 disabled:opacity-50"
+                >
+                  Cyan
+                </button>
+                <button 
+                  onClick={() => getRandomColorByFamily('blue')}
+                  disabled={loading}
+                  className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-3 rounded-md transition-colors duration-200 disabled:opacity-50"
+                >
+                  Blue
+                </button>
+                <button 
+                  onClick={() => getRandomColorByFamily('purple')}
+                  disabled={loading}
+                  className="bg-purple-500 hover:bg-purple-600 text-white font-medium py-2 px-3 rounded-md transition-colors duration-200 disabled:opacity-50"
+                >
+                  Purple
+                </button>
+                <button 
+                  onClick={() => getRandomColorByFamily('pink')}
+                  disabled={loading}
+                  className="bg-pink-500 hover:bg-pink-600 text-white font-medium py-2 px-3 rounded-md transition-colors duration-200 disabled:opacity-50"
+                >
+                  Pink
+                </button>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+                <button 
+                  onClick={() => getRandomColorByFamily('gray')}
+                  disabled={loading}
+                  className="bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-3 rounded-md transition-colors duration-200 disabled:opacity-50"
+                >
+                  Gray
+                </button>
+                <button 
+                  onClick={() => getRandomColorByFamily('black')}
+                  disabled={loading}
+                  className="bg-black hover:bg-gray-900 text-white font-medium py-2 px-3 rounded-md transition-colors duration-200 disabled:opacity-50"
+                >
+                  Black
+                </button>
+                <button 
+                  onClick={() => getRandomColorByFamily('white')}
+                  disabled={loading}
+                  className="bg-white hover:bg-gray-100 text-black border border-gray-300 font-medium py-2 px-3 rounded-md transition-colors duration-200 disabled:opacity-50"
+                >
+                  White
                 </button>
               </div>
             </div>
