@@ -405,6 +405,24 @@ export default function ColorPage() {
                 >                    <div className="text-center">
                     <p className="text-xl font-bold">{currentColor.colorName}</p>
                     <p className="text-sm mt-1">{currentColor.brand?.name || 'No brand'} {currentColor.markerNumber}</p>
+                    {currentColor.gridId && (
+                      <p className="text-sm mt-2">
+                        Location: {currentColor.grid?.name || 'Unknown grid'} 
+                        {currentColor.columnNumber !== null && currentColor.rowNumber !== null && 
+                          ` (Column: ${currentColor.columnNumber}, Row: ${currentColor.rowNumber})`
+                        }
+                      </p>
+                    )}
+                    {currentColor.simpleStorageId && !currentColor.gridId && (
+                      <p className="text-sm mt-2">
+                        Location: {currentColor.simpleStorage?.name || 'Simple storage'}
+                      </p>
+                    )}
+                    {!currentColor.gridId && !currentColor.simpleStorageId && (
+                      <p className="text-sm mt-2 text-gray-500 italic">
+                        Not stored in any location
+                      </p>
+                    )}
                   </div>
                 </div>
               </motion.div>

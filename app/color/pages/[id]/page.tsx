@@ -19,6 +19,7 @@ interface PageItem {
   rowNumber: number | null;
   orderIndex: number;
   markerId: string | null;
+  isRandom: boolean;
 }
 
 interface PageData {
@@ -166,10 +167,10 @@ export default function PageView({ params: paramsPromise }: { params: Promise<{ 
                         <div className="p-4 bg-gray-100">
                           <div className="flex justify-between items-center mb-2">
                             <p className="text-sm font-medium text-gray-700">Location:</p>
-                            {item.markerId ? (
-                              <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">Picked</span>
-                            ) : (
+                            {item.isRandom ? (
                               <span className="bg-purple-100 text-purple-800 text-xs px-2 py-0.5 rounded-full">Random</span>
+                            ) : (
+                              <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full">Picked</span>
                             )}
                           </div>
                           <p className="text-sm text-gray-600">

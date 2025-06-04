@@ -104,6 +104,7 @@ export async function POST(request: Request) {
         columnNumber: item.columnNumber || null,
         rowNumber: item.rowNumber || null,
         orderIndex: index,
+        isRandom: !!item.isRandom,  // Convert to boolean in case it's undefined
         pageId: newPage.id,
         markerId: item.id || null
       }));

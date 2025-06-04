@@ -119,6 +119,7 @@ model PageItem {
   columnNumber Int?
   rowNumber    Int?
   orderIndex   Int      // For custom ordering in the page
+  isRandom     Boolean  @default(false) // Whether the color was randomly selected or manually picked
   createdAt    DateTime @default(now())
   // Relations
   pageId       String
