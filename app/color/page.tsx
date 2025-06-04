@@ -317,8 +317,10 @@ export default function ColorPage() {
     
     // Color families based on hue ranges
     if (hue < 15) return 'red';
-    if (hue < 45) return 'orange';
-    if (hue < 75) return 'yellow';
+    if (hue < 40) return 'orange';
+    if (hue < 65) return 'yellow';
+    // Brown is a special case - low saturation orange/yellow
+    if ((hue >= 15 && hue < 50) && saturation > 0.1 && saturation < 0.5 && lightness < 0.6) return 'brown';
     if (hue < 165) return 'green';
     if (hue < 195) return 'cyan';
     if (hue < 255) return 'blue';
@@ -474,7 +476,14 @@ export default function ColorPage() {
                   Pink
                 </button>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2">
+                <button 
+                  onClick={() => getRandomColorByFamily('brown')}
+                  disabled={loading}
+                  className="bg-amber-800 hover:bg-amber-900 text-white font-medium py-2 px-3 rounded-md transition-colors duration-200 disabled:opacity-50"
+                >
+                  Brown
+                </button>
                 <button 
                   onClick={() => getRandomColorByFamily('gray')}
                   disabled={loading}

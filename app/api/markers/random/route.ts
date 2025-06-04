@@ -59,9 +59,10 @@ const isColorInFamily = (hex: string, family: string): boolean => {
   // Color families based on hue ranges
   switch (family) {
     case 'red': return (h < 15 || h >= 345);
-    case 'orange': return (h >= 15 && h < 45);
-    case 'yellow': return (h >= 45 && h < 75);
-    case 'green': return (h >= 75 && h < 165);
+    case 'orange': return (h >= 15 && h < 40 && (s >= 0.5 || l >= 0.6));
+    case 'yellow': return (h >= 40 && h < 65);
+    case 'brown': return (h >= 15 && h < 50 && s > 0.1 && s < 0.5 && l < 0.6);
+    case 'green': return (h >= 65 && h < 165);
     case 'cyan': return (h >= 165 && h < 195);
     case 'blue': return (h >= 195 && h < 255);
     case 'purple': return (h >= 255 && h < 285);
