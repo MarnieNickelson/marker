@@ -1,0 +1,175 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { Marker } from '../types/marker';
+import Layout from '../components/Layout';
+import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
+import { fetchWithAuth } from '../utils/api';
+
+interface ColorHistoryItem {
+  id: string;
+  markerNumber: string;
+  colorName: string;
+  colorHex: string;
+  brandName: string | null;
+  gridId: string | null;
+  gridName: string | null;
+  columnNumber: number | null;
+  rowNumber: number | null;
+  timestamp: Date;
+  isRandom: boolean; // To distinguish between random and picked colors
+}
+
+export default function ColorPage() {
+  const [currentColor, setCurrentColor] = useState<Marker | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [colorHistory, setColorHistory] = useState<ColorHistoryItem[]>([]);
+  const [searchResults, setSearchResults] = useState<Marker[]>([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  
+  // Load color history from localStorage on component mount
+  useEffect(() => {
+    const savedHistory = localStorage.getItem('colorHistory');
+    console.log('Loading color history from localStorage:', savedHistory);
+    
+    if (savedHistory) {
+      try {
+        const parsedHistory = JSON.parse(savedHistory);
+        // Convert string dates back to Date objects
+        const historyWithDates = parsedHistory.map((item: any) => ({
+          ...item,
+          timestamp: new Date(item.timestamp)
+        }));
+        console.log('Loaded color history:', historyWithDates);
+        setColorHistory(historyWithDates);
+      } catch (error) {
+        console.error('Failed to parse color history from localStorage:', error);
+      }
+    } else {
+      console.log('No color history found in localStorage');
+    }
+  }, []);
+  
+  // Helper function to add a marker to history
+  const addMarkerToHistory = (marker: Marker, isRandom: boolean) => {
+    console.log('Adding marker to history:', marker, 'isRandom:', isRandom);
+    setCurrentColor(marker);
+    
+    // Add to history
+    const historyItem: ColorHistoryItem = {
+      id: marker.id,
+      markerNumber: marker.markerNumber,
+      colorName: marker.colorName,
+      colorHex: marker.colorHex,
+      brandName: marker.brand?.name || null,
+      gridId: marker.gridId,
+      gridName: marker.grid?.name || null,
+      columnNumber: marker.columnNumber,
+      rowNumber: marker.rowNumber,
+      timestamp: new Date(),
+      isRandom: isRandom
+    };
+    
+    const updatedHistory = [historyItem, ...colorHistory];
+    console.log('Updated history will be:', updatedHistory);
+    setColorHistory(updatedHistory);
+    
+    // Save to localStorage
+    localStorage.setItem('colorHistory', JSON.stringify(updatedHistory));
+    console.log('Saved to localStorage');
+    
+    const actionType = isRandom ? 'Random' : 'Selected';
+    toast.success(`${actionType} color: ${marker.colorName}`);
+  };
+
+  // Get a random color from the user's inventory
+  const getRandomColor = async () => {
+    try {
+      setLoading(true);
+      
+      // Get the IDs of markers already in history to exclude them
+      const existingIds = colorHistory.map(item => item.id);
+      const excludeParam = existingIds.length > 0 
+        ? `?exclude=${encodeURIComponent(existingIds.join(','))}` 
+        : '';
+      
+      const marker = await fetchWithAuth<Marker>(`/api/markers/random${excludeParam}`);
+      
+      if (marker) {
+        addMarkerToHistory(marker, true);
+      }
+    } catch (error) {
+      toast.error('Failed to get random color. Check if you have markers in your inventory.');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Pick a color by its number or name
+  const pickColorByNumber = async () => {
+    const inputElement = document.getElementById('colorNumberInput') as HTMLInputElement;
+    const searchTerm = inputElement?.value;
+    
+    if (!searchTerm || searchTerm.trim() === '') {
+      toast.error('Please enter a color number or name');
+      return;
+    }
+    
+    try {
+      setSearchLoading(true);
+      const searchParams = new URLSearchParams({ 
+        q: searchTerm.trim(),
+        includeGrid: 'true'
+      });
+      const markers = await fetchWithAuth<Marker[]>(`/api/markers/search?${searchParams}`);
+      
+      if (!markers || markers.length === 0) {
+        toast.error(`No markers found matching "${searchTerm}"`);
+        setSearchResults([]);
+        setShowSearchResults(false);
+        return;
+      }
+      
+      if (markers.length === 1) {
+        // Use the single match directly
+        const marker = markers[0];
+        addMarkerToHistory(marker, false);
+        
+        // Clear the input and search results
+        inputElement.value = '';
+        setSearchResults([]);
+        setShowSearchResults(false);
+        
+        toast.success(`Found and added: ${marker.colorName}`);
+      } else {
+        // Show multiple results for user to choose from
+        setSearchResults(markers);
+        setShowSearchResults(true);
+        toast.success(`Found ${markers.length} matches. Select one to add.`);
+      }
+      
+    } catch (error) {
+      toast.error('Failed to search for colors');
+      setSearchResults([]);
+      setShowSearchResults(false);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  // Select a marker from search results
+  const selectMarkerFromResults = (marker: Marker) => {
+    addMarkerToHistory(marker, false);
+    
+    // Clear the input and search results
+    const inputElement = document.getElementById('colorNumberInput') as HTMLInputElement;
+    if (inputElement) {
+      inputElement.value = '';
+    }
+    setSearchResults([]);
+    setShowSearchResults(false);
+    
+    toast.success(`Added: ${marker.colorName}`);
+  };

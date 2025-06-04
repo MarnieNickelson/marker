@@ -257,16 +257,6 @@ export default function ColorPage() {
     }
   };
 
-  // Determine text color based on background color for readability
-  const getContrastingTextColor = (hexColor: string): string => {
-    const hex = hexColor.replace('#', '');
-    const r = parseInt(hex.slice(0, 2), 16);
-    const g = parseInt(hex.slice(2, 4), 16);
-    const b = parseInt(hex.slice(4, 6), 16);
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    return luminance > 0.5 ? '#000000' : '#FFFFFF';
-  };
-
   // Function to determine color family from hex code
   const getColorFamily = (hex: string): string => {
     // Remove # if present and validate hex format
@@ -357,6 +347,320 @@ export default function ColorPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Convert hex color to HSL values
+  const hexToHSL = (hex: string): { h: number, s: number, l: number } => {
+    // Remove # if present
+    hex = hex.replace(/^#/, '');
+    
+    // Convert hex to RGB
+    const r = parseInt(hex.substring(0, 2), 16) / 255;
+    const g = parseInt(hex.substring(2, 4), 16) / 255;
+    const b = parseInt(hex.substring(4, 6), 16) / 255;
+
+    // Find max and min values for RGB
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    
+    // Calculate lightness
+    const lightness = (max + min) / 2;
+    
+    // Calculate saturation
+    let saturation = 0;
+    if (max !== min) {
+      saturation = lightness > 0.5 
+        ? (max - min) / (2 - max - min) 
+        : (max - min) / (max + min);
+    }
+    
+    // Calculate hue
+    let hue = 0;
+    if (max !== min) {
+      if (max === r) {
+        hue = (g - b) / (max - min) + (g < b ? 6 : 0);
+      } else if (max === g) {
+        hue = (b - r) / (max - min) + 2;
+      } else {
+        hue = (r - g) / (max - min) + 4;
+      }
+      hue *= 60;
+    }
+    
+    return { h: hue, s: saturation, l: lightness };
+  };
+
+  // State for potential highlight and shadow colors
+  const [highlightColor, setHighlightColor] = useState<Marker | null>(null);
+  const [shadowColor, setShadowColor] = useState<Marker | null>(null);
+  
+  // Updates highlight and shadow color suggestions when current color changes
+  useEffect(() => {
+    if (currentColor) {
+      findHighlightOptions();
+      findShadowOptions();
+    } else {
+      setHighlightColor(null);
+      setShadowColor(null);
+    }
+  }, [currentColor]);
+  
+  // Find potential highlight colors without selecting them
+  const findHighlightOptions = async () => {
+    if (!currentColor) return;
+
+    try {
+      const { h } = hexToHSL(currentColor.colorHex);
+      
+      // Get all markers
+      const markers = await fetchWithAuth<Marker[]>('/api/markers');
+      
+      if (!markers || markers.length === 0) {
+        return;
+      }
+      
+      // Calculate HSL for all markers and find ones with similar hue but higher lightness
+      const suitableHighlights = markers
+        .map(marker => {
+          const hsl = hexToHSL(marker.colorHex);
+          // Calculate hue distance (considering the circular nature of hue)
+          const hueDiff = Math.min(
+            Math.abs(hsl.h - h),
+            360 - Math.abs(hsl.h - h)
+          );
+          
+          // Calculate a score based on hue similarity and higher lightness
+          // Lower score is better
+          const currentHSL = hexToHSL(currentColor.colorHex);
+          let score = hueDiff;
+          
+          // Heavily penalize colors that aren't lighter
+          if (hsl.l <= currentHSL.l) {
+            score += 1000;
+          } else {
+            // Favor colors that are somewhat lighter, but not too much
+            score += Math.abs(hsl.l - (currentHSL.l + 0.2)) * 10;
+          }
+          
+          return { marker, score };
+        })
+        .filter(item => item.score < 1000) // Only colors that are actually lighter
+        .sort((a, b) => a.score - b.score); // Sort by lowest score
+      
+      if (suitableHighlights.length > 0) {
+        setHighlightColor(suitableHighlights[0].marker);
+      }
+    } catch (error) {
+      console.error('Error finding highlight options:', error);
+    }
+  };
+  
+  // Find a highlight (lighter) color for the current color
+  const findHighlightColor = async () => {
+    if (!currentColor) {
+      toast.error("Select a color first before finding a highlight");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      if (highlightColor) {
+        // Use the pre-calculated highlight color if available
+        addMarkerToHistory(highlightColor, false);
+        toast.success(`Highlight color: ${highlightColor.colorName}`);
+        return;
+      }
+      
+      const { h } = hexToHSL(currentColor.colorHex);
+      
+      // Get all markers
+      const markers = await fetchWithAuth<Marker[]>('/api/markers');
+      
+      if (!markers || markers.length === 0) {
+        toast.error('No markers found in your inventory');
+        return;
+      }
+      
+      // Calculate HSL for all markers and find ones with similar hue but higher lightness
+      const suitableHighlights = markers
+        .map(marker => {
+          const hsl = hexToHSL(marker.colorHex);
+          // Calculate hue distance (considering the circular nature of hue)
+          const hueDiff = Math.min(
+            Math.abs(hsl.h - h),
+            360 - Math.abs(hsl.h - h)
+          );
+          
+          // Calculate a score based on hue similarity and higher lightness
+          // Lower score is better
+          const currentHSL = hexToHSL(currentColor.colorHex);
+          let score = hueDiff;
+          
+          // Heavily penalize colors that aren't lighter
+          if (hsl.l <= currentHSL.l) {
+            score += 1000;
+          } else {
+            // Favor colors that are somewhat lighter, but not too much
+            score += Math.abs(hsl.l - (currentHSL.l + 0.2)) * 10;
+          }
+          
+          return { marker, score };
+        })
+        .filter(item => item.score < 1000) // Only colors that are actually lighter
+        .sort((a, b) => a.score - b.score); // Sort by lowest score
+      
+      if (suitableHighlights.length === 0) {
+        toast.error('No suitable highlight colors found');
+        return;
+      }
+      
+      // Get the best match
+      const highlightMarker = suitableHighlights[0].marker;
+      setHighlightColor(highlightMarker);
+      addMarkerToHistory(highlightMarker, false);
+      toast.success(`Highlight color: ${highlightMarker.colorName}`);
+      
+    } catch (error) {
+      toast.error('Failed to find highlight color');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Find potential shadow colors without selecting them
+  const findShadowOptions = async () => {
+    if (!currentColor) return;
+
+    try {
+      const { h } = hexToHSL(currentColor.colorHex);
+      
+      // Get all markers
+      const markers = await fetchWithAuth<Marker[]>('/api/markers');
+      
+      if (!markers || markers.length === 0) {
+        return;
+      }
+      
+      // Calculate HSL for all markers and find ones with similar hue but lower lightness
+      const suitableShadows = markers
+        .map(marker => {
+          const hsl = hexToHSL(marker.colorHex);
+          // Calculate hue distance (considering the circular nature of hue)
+          const hueDiff = Math.min(
+            Math.abs(hsl.h - h),
+            360 - Math.abs(hsl.h - h)
+          );
+          
+          // Calculate a score based on hue similarity and lower lightness
+          // Lower score is better
+          const currentHSL = hexToHSL(currentColor.colorHex);
+          let score = hueDiff;
+          
+          // Heavily penalize colors that aren't darker
+          if (hsl.l >= currentHSL.l) {
+            score += 1000;
+          } else {
+            // Favor colors that are somewhat darker, but not too much
+            score += Math.abs(hsl.l - (currentHSL.l - 0.2)) * 10;
+          }
+          
+          return { marker, score };
+        })
+        .filter(item => item.score < 1000) // Only colors that are actually darker
+        .sort((a, b) => a.score - b.score); // Sort by lowest score
+      
+      if (suitableShadows.length > 0) {
+        setShadowColor(suitableShadows[0].marker);
+      }
+    } catch (error) {
+      console.error('Error finding shadow options:', error);
+    }
+  };
+
+  // Find a shadow (darker) color for the current color
+  const findShadowColor = async () => {
+    if (!currentColor) {
+      toast.error("Select a color first before finding a shadow");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      if (shadowColor) {
+        // Use the pre-calculated shadow color if available
+        addMarkerToHistory(shadowColor, false);
+        toast.success(`Shadow color: ${shadowColor.colorName}`);
+        return;
+      }
+      
+      const { h } = hexToHSL(currentColor.colorHex);
+      
+      // Get all markers
+      const markers = await fetchWithAuth<Marker[]>('/api/markers');
+      
+      if (!markers || markers.length === 0) {
+        toast.error('No markers found in your inventory');
+        return;
+      }
+      
+      // Calculate HSL for all markers and find ones with similar hue but lower lightness
+      const suitableShadows = markers
+        .map(marker => {
+          const hsl = hexToHSL(marker.colorHex);
+          // Calculate hue distance (considering the circular nature of hue)
+          const hueDiff = Math.min(
+            Math.abs(hsl.h - h),
+            360 - Math.abs(hsl.h - h)
+          );
+          
+          // Calculate a score based on hue similarity and lower lightness
+          // Lower score is better
+          const currentHSL = hexToHSL(currentColor.colorHex);
+          let score = hueDiff;
+          
+          // Heavily penalize colors that aren't darker
+          if (hsl.l >= currentHSL.l) {
+            score += 1000;
+          } else {
+            // Favor colors that are somewhat darker, but not too much
+            score += Math.abs(hsl.l - (currentHSL.l - 0.2)) * 10;
+          }
+          
+          return { marker, score };
+        })
+        .filter(item => item.score < 1000) // Only colors that are actually darker
+        .sort((a, b) => a.score - b.score); // Sort by lowest score
+      
+      if (suitableShadows.length === 0) {
+        toast.error('No suitable shadow colors found');
+        return;
+      }
+      
+      // Get the best match
+      const shadowMarker = suitableShadows[0].marker;
+      setShadowColor(shadowMarker);
+      addMarkerToHistory(shadowMarker, false);
+      toast.success(`Shadow color: ${shadowMarker.colorName}`);
+      
+    } catch (error) {
+      toast.error('Failed to find shadow color');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Determine text color based on background color for readability
+  const getContrastingTextColor = (hexColor: string): string => {
+    const hex = hexColor.replace('#', '');
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.5 ? '#000000' : '#FFFFFF';
   };
 
   return (
@@ -507,9 +811,9 @@ export default function ColorPage() {
                 </button>
               </div>
             </div>
-            </div>
+          </div>
             
-            {/* Search Results */}
+          {/* Search Results */}
           {showSearchResults && searchResults.length > 0 && (
             <motion.div 
               className="bg-white rounded-lg shadow-md p-6 mb-8"
@@ -587,7 +891,8 @@ export default function ColorPage() {
                     backgroundColor: currentColor.colorHex,
                     color: getContrastingTextColor(currentColor.colorHex)
                   }}
-                >                    <div className="text-center">
+                >
+                  <div className="text-center">
                     <p className="text-xl font-bold">{currentColor.colorName}</p>
                     <p className="text-sm mt-1">{currentColor.brand?.name || 'No brand'} {currentColor.markerNumber}</p>
                     {currentColor.gridId && (
@@ -609,6 +914,34 @@ export default function ColorPage() {
                       </p>
                     )}
                   </div>
+                </div>
+                
+                {/* Highlight and Shadow buttons */}
+                <div className="flex flex-row gap-2 mt-4">
+                  <button
+                    onClick={findHighlightColor}
+                    disabled={loading}
+                    className={`flex-1 font-medium py-2 rounded-lg transition-colors duration-200 disabled:opacity-50 border ${!highlightColor ? 'bg-sky-100 hover:bg-sky-200 text-sky-800 border-sky-300' : ''}`}
+                    style={highlightColor ? {
+                      backgroundColor: highlightColor.colorHex,
+                      color: getContrastingTextColor(highlightColor.colorHex),
+                      borderColor: 'rgba(0,0,0,0.2)'
+                    } : {}}
+                  >
+                    {highlightColor ? `${highlightColor.markerNumber} - Highlight` : 'Pick Highlight'}
+                  </button>
+                  <button
+                    onClick={findShadowColor}
+                    disabled={loading}
+                    className={`flex-1 font-medium py-2 rounded-lg transition-colors duration-200 disabled:opacity-50 border ${!shadowColor ? 'bg-slate-700 hover:bg-slate-800 text-white' : ''}`}
+                    style={shadowColor ? {
+                      backgroundColor: shadowColor.colorHex,
+                      color: getContrastingTextColor(shadowColor.colorHex),
+                      borderColor: 'rgba(0,0,0,0.2)'
+                    } : {}}
+                  >
+                    {shadowColor ? `${shadowColor.markerNumber} - Shadow` : 'Pick Shadow'}
+                  </button>
                 </div>
               </motion.div>
             </AnimatePresence>
