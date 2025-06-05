@@ -525,27 +525,28 @@ export default function MarkersPage() {
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.3 }}
                     >
-                      <div className="border-b border-gray-100 pb-4 mb-4">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <h3 className="text-2xl font-bold text-gray-900 mb-1">{selectedMarker.markerNumber}</h3>
-                            <div className="flex items-center gap-2">
-                              <div 
-                                className="w-6 h-6 rounded-full"
-                                style={{ 
-                                  backgroundColor: selectedMarker.colorHex,
-                                  border: '1px solid #e5e7eb'
-                                }}
-                              />
-                              <span className="text-gray-600">{selectedMarker.colorName}</span>
+                        <div className="relative rounded-lg p-4 mb-2">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h3 className="text-2xl font-bold text-gray-900 mb-1">{selectedMarker.markerNumber}</h3>
+                              <div className="flex items-center gap-2">
+                                <div 
+                                  className="w-6 h-6 rounded-full"
+                                  style={{ 
+                                    backgroundColor: selectedMarker.colorHex,
+                                    border: '1px solid #e5e7eb',
+                                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                                  }}
+                                />
+                                <span className="text-gray-800 font-medium">{selectedMarker.colorName}</span>
+                              </div>
+                              {selectedMarker.brand && (
+                                <p className="mt-1 text-sm text-gray-700">Brand: {selectedMarker.brand.name}</p>
+                              )}
+                              <p className="text-sm text-blue-600 mt-2 font-medium">
+                                Total Markers: {sameMarkers.length} {sameMarkers.length > 1 ? 'locations' : 'location'}
+                              </p>
                             </div>
-                            {selectedMarker.brand && (
-                              <p className="mt-1 text-sm text-gray-500">Brand: {selectedMarker.brand.name}</p>
-                            )}
-                            <p className="text-sm text-blue-600 mt-2 font-medium">
-                              Total Markers: {sameMarkers.length} {sameMarkers.length > 1 ? 'locations' : 'location'}
-                            </p>
-                          </div>
                           
                           <div className="bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
                             <p className="text-sm font-medium text-gray-800 mb-2">
@@ -583,6 +584,17 @@ export default function MarkersPage() {
                             )}
                           </div>
                         </div>
+                        {/* Large color swatch */}
+                        <div 
+                          className="w-full h-20 rounded-lg my-4"
+                          style={{ 
+                            backgroundColor: selectedMarker.colorHex,
+                            border: '1px solid #e5e7eb',
+                            boxShadow: 'inset 0 2px 4px 0 rgba(0,0,0,0.06)'
+                          }}
+                          aria-label={`Color swatch for ${selectedMarker.colorName}`}
+                        ></div>
+
                         <div className="mt-4 text-sm text-gray-500">
                           <p>Added: {new Date(selectedMarker.createdAt).toLocaleDateString()}</p>
                           <p>Last updated: {new Date(selectedMarker.updatedAt).toLocaleDateString()}</p>

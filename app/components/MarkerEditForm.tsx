@@ -19,6 +19,7 @@ const MarkerEditForm: React.FC<MarkerEditFormProps> = ({
   const [grids, setGrids] = useState<Grid[]>(providedGrids || []);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [simpleStorages, setSimpleStorages] = useState<SimpleStorage[]>([]);
+  const [originalColorHex, setOriginalColorHex] = useState(marker.colorHex); // Store original color hex
   const [formData, setFormData] = useState({
     markerNumber: marker.markerNumber,
     colorName: marker.colorName,
@@ -149,6 +150,9 @@ const MarkerEditForm: React.FC<MarkerEditFormProps> = ({
         throw new Error(data.error || 'Failed to update marker');
       }
       
+      // Update the original color hex after successful save
+      setOriginalColorHex(formData.colorHex);
+      
       onMarkerUpdated();
       return 'Marker updated successfully!';
     })
@@ -238,10 +242,10 @@ const MarkerEditForm: React.FC<MarkerEditFormProps> = ({
             <div className="flex items-center mt-2">
               <div 
                 className="h-6 w-12 rounded-l" 
-                style={{ backgroundColor: formData.colorHex }}
+                style={{ backgroundColor: originalColorHex }}
               ></div>
               <div className="h-6 px-2 rounded-r bg-gray-100 text-xs flex items-center">
-                {formData.colorName || "Preview"}
+                <span className="font-medium">{formData.colorName}</span>
               </div>
             </div>
           </div>
