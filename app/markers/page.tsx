@@ -269,7 +269,8 @@ function MarkerPageContent() {
   
   // Handle marker update
   const handleMarkerUpdated = async () => {
-    await fetchData();
+    // Maintain the current color family filter when refetching data after update
+    await fetchData(undefined, colorFamilyFilter || undefined);
     setIsEditing(false);
   };
   
