@@ -179,6 +179,79 @@ const SearchMarkers: React.FC<SearchMarkersProps> = ({
     return grids.find(grid => grid.id === gridId);
   };
 
+  // Helper function to convert hex to HSL
+  const hexToHSL = (hex: string): { h: number, s: number, l: number } => {
+    // Remove # if present
+    hex = hex.replace('#', '');
+    
+    // Convert hex to RGB
+    const r = parseInt(hex.substring(0, 2), 16) / 255;
+    const g = parseInt(hex.substring(2, 4), 16) / 255;
+    const b = parseInt(hex.substring(4, 6), 16) / 255;
+
+    // Find max and min values for RGB
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    
+    // Calculate lightness
+    const l = (max + min) / 2;
+    
+    // Calculate saturation
+    let s = 0;
+    if (max !== min) {
+      s = l > 0.5 
+        ? (max - min) / (2 - max - min) 
+        : (max - min) / (max + min);
+    }
+    
+    // Calculate hue
+    let h = 0;
+    if (max !== min) {
+      if (max === r) {
+        h = (g - b) / (max - min) + (g < b ? 6 : 0);
+      } else if (max === g) {
+        h = (b - r) / (max - min) + 2;
+      } else {
+        h = (r - g) / (max - min) + 4;
+      }
+      h *= 60;
+    }
+    
+    return { h, s, l };
+  };
+
+  // Function to determine color family from hex code
+  const getColorFamily = (hex: string): string => {
+    // Remove # if present and validate hex format
+    hex = hex.replace(/^#/, '');
+    if (!/^[0-9A-Fa-f]{6}$/.test(hex)) {
+      return 'unknown';
+    }
+
+    const { h, s, l } = hexToHSL(`#${hex}`);
+    
+    // Determine color family based on hue, saturation, and lightness
+    if (s < 0.1) {
+      if (l < 0.15) return 'black';
+      if (l > 0.85) return 'white';
+      return 'gray';
+    }
+    
+    // Color families based on hue ranges
+    if (h < 15) return 'red';
+    if (h < 40) return 'orange';
+    if (h < 65) return 'yellow';
+    // Brown is a special case - broader definition to catch more earth tones
+    if ((h >= 15 && h < 50 && s > 0.1 && s < 0.7 && l < 0.5) || 
+        (h >= 20 && h < 40 && s > 0.3 && s < 0.8 && l < 0.4)) return 'brown';
+    if (h < 165) return 'green';
+    if (h < 195) return 'cyan';
+    if (h < 255) return 'blue';
+    if (h < 285) return 'purple';
+    if (h < 345) return 'pink';
+    return 'red'; // 345-360 is red again
+  };
+
   return (
     <div className="mt-8">
       <motion.h2 
@@ -208,8 +281,8 @@ const SearchMarkers: React.FC<SearchMarkersProps> = ({
               }}
             >
               <div className="text-center">
-                <p className="text-xl font-bold">{selectedMarker.colorName}</p>
-                <p className="text-sm mt-1">{selectedMarker.brand?.name || 'No brand'} {selectedMarker.markerNumber}</p>
+                <p className="text-xl font-bold">{selectedMarker.colorName} - {selectedMarker.markerNumber}</p>
+                <p className="text-sm mt-1">{selectedMarker.brand?.name || 'No brand'} ~ {getColorFamily(selectedMarker.colorHex)}</p>
                 {selectedMarker.gridId && (
                   <p className="text-sm mt-2">
                     Location: {selectedMarker.grid?.name || 'Unknown grid'} 
@@ -233,7 +306,7 @@ const SearchMarkers: React.FC<SearchMarkersProps> = ({
             {!loadingSameMarkers && sameMarkers.length > 1 && (
               <div className="mt-4">
                 <h4 className="font-medium text-sm text-gray-700 mb-2">
-                  Other {selectedMarker.markerNumber} {selectedMarker.colorName} markers in your inventory:
+                  Other {selectedMarker.colorName} - {selectedMarker.markerNumber} markers in your inventory:
                 </h4>
                 <div className="grid gap-2 max-h-60 overflow-y-auto pr-2">
                   {sameMarkers.filter(marker => marker.id !== selectedMarker.id).map((marker, index) => (
@@ -361,6 +434,9 @@ const SearchMarkers: React.FC<SearchMarkersProps> = ({
                       )}
                     </div>
                   </div>
+                  <p className="text-sm text-gray-500">
+                    {marker.brand?.name || 'No brand'} ~ {getColorFamily(marker.colorHex)}
+                  </p>
                   <p className="text-sm text-gray-500">
                     {getStorageLocationName(marker)}
                   </p>

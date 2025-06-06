@@ -465,8 +465,8 @@ function MarkerPageContent() {
                   }}
                 >
                   <div className="text-center">
-                    <p className="text-xl font-bold">{selectedMarker.colorName}</p>
-                    <p className="text-sm mt-1">{selectedMarker.brand?.name || 'No brand'} {selectedMarker.markerNumber}</p>
+                    <p className="text-xl font-bold">{selectedMarker.colorName} - {selectedMarker.markerNumber}</p>
+                    <p className="text-sm mt-1">{selectedMarker.brand?.name || 'No brand'} ~ {getColorFamily(selectedMarker.colorHex)}</p>
                     {selectedMarker.gridId && (
                       <p className="text-sm mt-2">
                         Location: {selectedMarker.grid?.name || 'Unknown grid'} 
@@ -578,6 +578,9 @@ function MarkerPageContent() {
                             {marker.colorName} - {marker.markerNumber}
                           </p>
                           <p className="text-sm text-gray-500">
+                            {marker.brand?.name || 'No brand'} ~ {getColorFamily(marker.colorHex)}
+                          </p>
+                          <p className="text-sm text-gray-500">
                             {getStorageLocationName(marker)}
                           </p>
                         </div>
@@ -627,7 +630,9 @@ function MarkerPageContent() {
                 <p className="mb-6">
                   Are you sure you want to delete this marker?
                   <br />
-                  <span className="font-semibold">{selectedMarker.markerNumber} - {selectedMarker.colorName}</span>
+                  <span className="font-semibold">{selectedMarker.colorName} - {selectedMarker.markerNumber}</span>
+                  <br />
+                  <span>{selectedMarker.brand?.name || 'No brand'} ~ {getColorFamily(selectedMarker.colorHex)}</span>
                 </p>
                 
                 <div className="flex gap-3">
