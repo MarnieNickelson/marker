@@ -483,6 +483,9 @@ function MarkerPageContent() {
                     {!selectedMarker.gridId && !selectedMarker.simpleStorageId && (
                       <p className="text-sm mt-2">Location: Not stored</p>
                     )}
+                    <p className="text-sm mt-2 text-gray-500">
+                      Last updated: {new Date(selectedMarker.updatedAt).toLocaleDateString()}
+                    </p>
                   </div>
                 </div>
               </motion.div>
