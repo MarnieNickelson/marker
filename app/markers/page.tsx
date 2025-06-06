@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useRef } from 'react';
 import { Marker, Grid as GridType } from '../types/marker';
 import GridComponent from '../components/Grid';
 import Layout from '../components/Layout';
@@ -111,6 +111,7 @@ function MarkerPageContent() {
   const [sameMarkers, setSameMarkers] = useState<Marker[]>([]);
   const [loadingSameMarkers, setLoadingSameMarkers] = useState(false);
   const [colorFamilyFilter, setColorFamilyFilter] = useState<string | null>(null);
+  const editFormRef = useRef<HTMLDivElement>(null);
   
   // Color families for filtering
   const colorFamilies = [
@@ -265,6 +266,17 @@ function MarkerPageContent() {
   const handleEditClick = () => {
     setIsEditing(true);
     setDeleteConfirmOpen(false);
+    
+    // Add a slight delay to ensure the edit form is rendered before scrolling
+    setTimeout(() => {
+      // Scroll to the edit form using the ref for more precise positioning
+      if (editFormRef.current) {
+        editFormRef.current.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'start' 
+        });
+      }
+    }, 100);
   };
   
   // Handle marker update
@@ -620,7 +632,7 @@ function MarkerPageContent() {
             </div>
             
             {isEditing && selectedMarker ? (
-              <div className="mt-6">
+              <div ref={editFormRef} className="mt-6">
                 <MarkerEditForm 
                   marker={selectedMarker!} 
                   onCancel={handleCancelEdit}
