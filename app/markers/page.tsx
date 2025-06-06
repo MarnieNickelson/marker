@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Marker, Grid as GridType } from '../types/marker';
 import GridComponent from '../components/Grid';
 import Layout from '../components/Layout';
@@ -94,10 +94,13 @@ const getColorFamily = (hex: string): string => {
   return 'red'; // 345-360 is red again
 };
 
-export default function MarkersPage() {
+// Wrapper component that uses useSearchParams
+function MarkerPageContent() {
   const searchParams = useSearchParams();
   
   const [markers, setMarkers] = useState<Marker[]>([]);
+
+  // Rest of the component implementation will go here
   const [grids, setGrids] = useState<GridType[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMarker, setSelectedMarker] = useState<Marker | null>(null);
@@ -646,5 +649,28 @@ export default function MarkersPage() {
         </motion.div>
       </div>
     </Layout>
+  );
+}
+
+// Main page component with Suspense boundary
+export default function MarkersPage() {
+  return (
+    <Suspense fallback={
+      <Layout>
+        <div className="text-center py-10">
+          <div className="animate-pulse">
+            <h1 className="text-2xl font-bold mb-4">Loading markers...</h1>
+            <div className="h-8 bg-gray-200 rounded w-3/4 mx-auto mb-4"></div>
+            <div className="grid grid-cols-3 gap-4 max-w-md mx-auto">
+              {[...Array(9)].map((_, i) => (
+                <div key={i} className="h-20 bg-gray-200 rounded"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Layout>
+    }>
+      <MarkerPageContent />
+    </Suspense>
   );
 }

@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server';
-import { hexToHSL, isColorInFamily } from '@/app/api/markers/route';
-
-// Export the helper functions for testing
-export { hexToHSL, isColorInFamily };
+import { hexToHSL, isColorInFamily } from '@/app/utils/colorUtils';
 
 // Debug route to check color family detection
 export async function GET(request: Request) {
@@ -25,7 +22,7 @@ export async function GET(request: Request) {
     
     // Check which color family it belongs to
     const colorFamilies = ['red', 'orange', 'yellow', 'green', 'cyan', 'blue', 'purple', 'pink', 'brown', 'black', 'white', 'gray'];
-    const familyResults = colorFamilies.reduce((acc, family) => {
+    const familyResults = colorFamilies.reduce<Record<string, boolean>>((acc, family) => {
       acc[family] = isColorInFamily(`#${cleanHex}`, family);
       return acc;
     }, {});
