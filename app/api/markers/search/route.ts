@@ -16,6 +16,7 @@ export async function GET(request: Request) {
     const isHexCode = hexRegex.test(query);
     
     const includeGrid = searchParams.get('includeGrid') === 'true';
+    const includeSimpleStorage = searchParams.get('includeSimpleStorage') === 'true';
     const gridId = searchParams.get('gridId');
     
     // Build the search criteria
@@ -56,7 +57,8 @@ export async function GET(request: Request) {
       where: whereClause,
       include: {
         grid: includeGrid,
-        brand: true
+        brand: true,
+        simpleStorage: includeSimpleStorage
       },
       orderBy: {
         markerNumber: 'asc'

@@ -5,7 +5,8 @@ import { Grid, Marker, Brand, SimpleStorage } from '../types/marker';
 
 interface MarkerEditFormProps {
   marker: Marker;
-  onMarkerUpdated: () => void;
+  onMarkerUpdated?: () => void; // Make it optional
+  onSaved?: () => void; // Add this alternative prop
   onCancel: () => void;
   grids?: Grid[];
 }
@@ -13,9 +14,13 @@ interface MarkerEditFormProps {
 const MarkerEditForm: React.FC<MarkerEditFormProps> = ({ 
   marker, 
   onMarkerUpdated, 
+  onSaved, // Add this new prop
   onCancel, 
   grids: providedGrids 
 }) => {
+  // Use either onMarkerUpdated or onSaved callback
+  const handleUpdate = onMarkerUpdated || onSaved;
+
   const [grids, setGrids] = useState<Grid[]>(providedGrids || []);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [simpleStorages, setSimpleStorages] = useState<SimpleStorage[]>([]);
@@ -153,7 +158,7 @@ const MarkerEditForm: React.FC<MarkerEditFormProps> = ({
       // Update the original color hex after successful save
       setOriginalColorHex(formData.colorHex);
       
-      onMarkerUpdated();
+      handleUpdate?.();
       return 'Marker updated successfully!';
     })
     .finally(() => {

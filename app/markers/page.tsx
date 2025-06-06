@@ -6,10 +6,97 @@ import { Marker, Grid as GridType } from '../types/marker';
 import GridComponent from '../components/Grid';
 import Layout from '../components/Layout';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import MarkerEditForm from '../components/MarkerEditForm';
+import SearchMarkers from '../components/SearchMarkers';
+
+// Helper function to determine if text should be white or black based on background color
+const getContrastingTextColor = (hexColor: string): string => {
+  const hex = hexColor.replace('#', '');
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return luminance > 0.5 ? '#000000' : '#FFFFFF';
+};
+
+// Helper function to convert hex to HSL
+const hexToHSL = (hex: string): { h: number, s: number, l: number } => {
+  // Remove # if present
+  hex = hex.replace('#', '');
+  
+  // Convert hex to RGB
+  const r = parseInt(hex.substring(0, 2), 16) / 255;
+  const g = parseInt(hex.substring(2, 4), 16) / 255;
+  const b = parseInt(hex.substring(4, 6), 16) / 255;
+
+  // Find max and min values for RGB
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  
+  // Calculate lightness
+  const l = (max + min) / 2;
+  
+  // Calculate saturation
+  let s = 0;
+  if (max !== min) {
+    s = l > 0.5 
+      ? (max - min) / (2 - max - min) 
+      : (max - min) / (max + min);
+  }
+  
+  // Calculate hue
+  let h = 0;
+  if (max !== min) {
+    if (max === r) {
+      h = (g - b) / (max - min) + (g < b ? 6 : 0);
+    } else if (max === g) {
+      h = (b - r) / (max - min) + 2;
+    } else {
+      h = (r - g) / (max - min) + 4;
+    }
+    h *= 60;
+  }
+  
+  return { h, s, l };
+};
+
+// Function to determine color family from hex code
+const getColorFamily = (hex: string): string => {
+  // Remove # if present and validate hex format
+  hex = hex.replace(/^#/, '');
+  if (!/^[0-9A-Fa-f]{6}$/.test(hex)) {
+    return 'unknown';
+  }
+
+  const { h, s, l } = hexToHSL(`#${hex}`);
+  
+  // Determine color family based on hue, saturation, and lightness
+  if (s < 0.1) {
+    if (l < 0.15) return 'black';
+    if (l > 0.85) return 'white';
+    return 'gray';
+  }
+  
+  // Color families based on hue ranges
+  if (h < 15) return 'red';
+  if (h < 40) return 'orange';
+  if (h < 65) return 'yellow';
+  // Brown is a special case - broader definition to catch more earth tones
+  if ((h >= 15 && h < 50 && s > 0.1 && s < 0.7 && l < 0.5) || 
+      (h >= 20 && h < 40 && s > 0.3 && s < 0.8 && l < 0.4)) return 'brown';
+  if (h < 165) return 'green';
+  if (h < 195) return 'cyan';
+  if (h < 255) return 'blue';
+  if (h < 285) return 'purple';
+  if (h < 345) return 'pink';
+  return 'red'; // 345-360 is red again
+};
 
 export default function MarkersPage() {
+  const searchParams = useSearchParams();
+  
   const [markers, setMarkers] = useState<Marker[]>([]);
   const [grids, setGrids] = useState<GridType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,13 +107,52 @@ export default function MarkersPage() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [sameMarkers, setSameMarkers] = useState<Marker[]>([]);
   const [loadingSameMarkers, setLoadingSameMarkers] = useState(false);
-
-  // Fetch markers and grids
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const [colorFamilyFilter, setColorFamilyFilter] = useState<string | null>(null);
   
-  const fetchData = async () => {
+  // Color families for filtering
+  const colorFamilies = [
+    { name: 'All', value: '', bgClass: 'bg-gradient-to-r from-red-500 via-blue-500 to-green-500', textClass: 'text-white' },
+    { name: 'Red', value: 'red', bgClass: 'bg-red-500 hover:bg-red-600', textClass: 'text-white' },
+    { name: 'Orange', value: 'orange', bgClass: 'bg-orange-500 hover:bg-orange-600', textClass: 'text-white' },
+    { name: 'Yellow', value: 'yellow', bgClass: 'bg-yellow-400 hover:bg-yellow-500', textClass: 'text-black' },
+    { name: 'Green', value: 'green', bgClass: 'bg-green-500 hover:bg-green-600', textClass: 'text-white' },
+    { name: 'Cyan', value: 'cyan', bgClass: 'bg-cyan-500 hover:bg-cyan-600', textClass: 'text-white' },
+    { name: 'Blue', value: 'blue', bgClass: 'bg-blue-500 hover:bg-blue-600', textClass: 'text-white' },
+    { name: 'Purple', value: 'purple', bgClass: 'bg-purple-500 hover:bg-purple-600', textClass: 'text-white' },
+    { name: 'Pink', value: 'pink', bgClass: 'bg-pink-500 hover:bg-pink-600', textClass: 'text-white' },
+    { name: 'Brown', value: 'brown', bgClass: 'bg-amber-800 hover:bg-amber-900', textClass: 'text-white' },
+    { name: 'Gray', value: 'gray', bgClass: 'bg-gray-500 hover:bg-gray-600', textClass: 'text-white' },
+    { name: 'Black', value: 'black', bgClass: 'bg-black hover:bg-gray-900', textClass: 'text-white' },
+    { name: 'White', value: 'white', bgClass: 'bg-white hover:bg-gray-100 border border-gray-300', textClass: 'text-black' }
+  ];
+
+  // Get URL params on load
+  useEffect(() => {
+    const colorFamily = searchParams.get('colorFamily');
+    const markerId = searchParams.get('marker');
+    
+    if (colorFamily) {
+      setColorFamilyFilter(colorFamily);
+      setFilterValue(''); // Clear any text filter when using color family
+      
+      // If a specific marker ID was also requested, pass it to fetchData
+      if (markerId) {
+        fetchData(markerId, colorFamily);
+      } else {
+        fetchData(undefined, colorFamily);
+      }
+    } else {
+      if (markerId) {
+        // We'll handle this after loading markers
+        fetchData(markerId);
+      } else {
+        // No specific marker requested, don't select anything by default
+        fetchData();
+      }
+    }
+  }, [searchParams]);
+
+  const fetchData = async (markerId?: string, colorFamily?: string) => {
     try {
       setLoading(true);
       
@@ -39,20 +165,45 @@ export default function MarkersPage() {
       setGrids(gridsData);
       
       // Fetch markers with grid and simple storage data
-      const markersResponse = await fetch('/api/markers?includeGrid=true&includeSimpleStorage=true');
+      let url = '/api/markers?includeGrid=true&includeSimpleStorage=true';
+      
+      // Add color family filter if specified
+      if (colorFamily) {
+        url += `&colorFamily=${encodeURIComponent(colorFamily.toLowerCase())}`;
+      }
+      
+      console.log("Fetching from URL:", url);
+      
+      const markersResponse = await fetch(url);
       if (!markersResponse.ok) {
         throw new Error('Failed to fetch markers');
       }
       const markersData = await markersResponse.json();
       
+      // Log if we got results
+      console.log(`Got ${markersData.length} markers ${colorFamily ? `in ${colorFamily} color family` : ''}`);
+      
+      // Debug the first few markers when filtering by brown or black
+      if (colorFamily === 'brown' || colorFamily === 'black') {
+        console.log("Sample markers for", colorFamily, ":");
+        markersData.slice(0, 3).forEach((marker: any) => {
+          console.log(`- ${marker.colorName} (${marker.colorHex})`);
+        });
+      }
+      
       setMarkers(markersData);
-      if (markersData.length > 0) {
-        // Set the first marker as selected
-        const firstMarker = markersData[0];
-        setSelectedMarker(firstMarker);
-        
-        // Also fetch its locations
-        fetchMarkerLocations(firstMarker);
+      
+      if (markerId) {
+        // If a specific marker ID was requested, select it
+        const marker = markersData.find((m: Marker) => m.id === markerId);
+        if (marker) {
+          handleSelectMarker(marker);
+        } else {
+          toast.error("The requested marker could not be found");
+        }
+      } else {
+        // Don't automatically select the first marker
+        setSelectedMarker(null);
       }
     } catch (err) {
       toast.error((err as Error).message);
@@ -186,563 +337,314 @@ export default function MarkersPage() {
       toast.error((error as Error).message || 'Failed to export markers');
     }
   };
+  
+  // Clear selected marker when changing color family
+  const handleColorFamilyChange = (value: string | null) => {
+    setColorFamilyFilter(value);
+    setSelectedMarker(null); // Clear the selected marker when changing color family
+    if (value) {
+      fetchData(undefined, value);
+    } else {
+      fetchData();
+    }
+  };
 
-  // Filter markers based on search input
+  // Filter markers based on search input and color family
   const filteredMarkers = markers.filter(marker => {
-    if (!filterValue) return true;
-    const lowerFilter = filterValue.toLowerCase();
+    // First apply text filter if any
+    if (filterValue) {
+      const lowerFilter = filterValue.toLowerCase();
+      
+      const gridName = findGridById(marker.gridId || '')?.name?.toLowerCase() || '';
+      const simpleStorageName = marker.simpleStorage?.name?.toLowerCase() || '';
+      
+      const matchesText = (
+        marker.markerNumber.toLowerCase().includes(lowerFilter) ||
+        marker.colorName.toLowerCase().includes(lowerFilter) ||
+        marker.colorHex.toLowerCase().includes(lowerFilter) ||
+        (marker.brand?.name && marker.brand.name.toLowerCase().includes(lowerFilter)) ||
+        gridName.includes(lowerFilter) ||
+        simpleStorageName.includes(lowerFilter)
+      );
+      
+      if (!matchesText) return false;
+    }
     
-    const gridName = findGridById(marker.gridId || '')?.name?.toLowerCase() || '';
-    const simpleStorageName = marker.simpleStorage?.name?.toLowerCase() || '';
+    // Color family filtering is now handled by the API endpoint
+    // We don't need to do client-side filtering for color families anymore
     
-    return (
-      marker.markerNumber.toLowerCase().includes(lowerFilter) ||
-      marker.colorName.toLowerCase().includes(lowerFilter) ||
-      marker.brand?.name.toLowerCase().includes(lowerFilter) ||
-      gridName.includes(lowerFilter) ||
-      simpleStorageName.includes(lowerFilter)
-    );
+    return true;
   });
 
-  // Sort markers based on selected sort option
+  // Sort markers
   const sortedMarkers = [...filteredMarkers].sort((a, b) => {
-    if (sortBy === 'markerNumber') {
-      return a.markerNumber.localeCompare(b.markerNumber);
-    } else if (sortBy === 'colorName') {
-      return a.colorName.localeCompare(b.colorName);
-    } else if (sortBy === 'brand') {
-      const brandNameA = a.brand?.name || '';
-      const brandNameB = b.brand?.name || '';
-      return brandNameA.localeCompare(brandNameB);
-    } else if (sortBy === 'storage') {
-      // First sort by storage type (grid or simple)
-      const aHasGrid = !!a.gridId;
-      const bHasGrid = !!b.gridId;
-      const aHasSimpleStorage = !!a.simpleStorageId;
-      const bHasSimpleStorage = !!b.simpleStorageId;
-      
-      // Put items with a storage location at the top
-      if (aHasGrid || aHasSimpleStorage) {
-        if (!bHasGrid && !bHasSimpleStorage) return -1;
-      } else if (bHasGrid || bHasSimpleStorage) {
-        return 1;
-      }
-      
-      // Sort grid storage first
-      if (aHasGrid && !bHasGrid) return -1;
-      if (!aHasGrid && bHasGrid) return 1;
-      
-      // If both are grid storage, sort by grid name
-      if (aHasGrid && bHasGrid) {
-        const gridNameA = findGridById(a.gridId)?.name || '';
-        const gridNameB = findGridById(b.gridId)?.name || '';
-        return gridNameA.localeCompare(gridNameB);
-      }
-      
-      // If both are simple storage, sort by storage name
-      if (aHasSimpleStorage && bHasSimpleStorage) {
-        const storageNameA = a.simpleStorage?.name || '';
-        const storageNameB = b.simpleStorage?.name || '';
-        return storageNameA.localeCompare(storageNameB);
-      }
-      
-      // Default sort by marker number if no storage assigned
-      return a.markerNumber.localeCompare(b.markerNumber);
-    } else if (sortBy === 'gridId') {
-      // Sort by grid first, then by position (row, then column) for left-to-right, top-to-bottom ordering
-      const gridNameA = findGridById(a.gridId)?.name || '';
-      const gridNameB = findGridById(b.gridId)?.name || '';
-      
-      // First sort by grid name
-      const gridComparison = gridNameA.localeCompare(gridNameB);
-      if (gridComparison !== 0) {
-        return gridComparison;
-      }
-      
-      // If same grid, sort by row first (top to bottom)
-      // Handle null values by treating them as 0
-      const rowA = a.rowNumber || 0;
-      const rowB = b.rowNumber || 0;
-      if (rowA !== rowB) {
-        return rowA - rowB;
-      }
-      
-      // If same row, sort by column (left to right)
-      // Handle null values by treating them as 0
-      const columnA = a.columnNumber || 0;
-      const columnB = b.columnNumber || 0;
-      return columnA - columnB;
-    } else {
-      return a.markerNumber.localeCompare(b.markerNumber);
+    switch (sortBy) {
+      case 'colorName':
+        return a.colorName.localeCompare(b.colorName);
+      case 'markerNumber':
+        return a.markerNumber.localeCompare(b.markerNumber);
+      case 'brand':
+        const brandA = a.brand?.name || '';
+        const brandB = b.brand?.name || '';
+        return brandA.localeCompare(brandB);
+      case 'grid':
+        const gridA = findGridById(a.gridId || '')?.name || '';
+        const gridB = findGridById(b.gridId || '')?.name || '';
+        return gridA.localeCompare(gridB);
+      case 'storage': 
+        return getStorageLocationName(a).localeCompare(getStorageLocationName(b));
+      default:
+        return 0;
     }
   });
-  
+
   return (
     <Layout>
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.4 }}
-      >
-        <div className="flex justify-between items-center mb-6">
-          <motion.h1 
-            className="text-3xl font-bold text-blue-800"
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            Markers
-          </motion.h1>
-          
-          <motion.div
-            className="flex gap-3"
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
-          >
-            <Link
-              href="/add"
-              className="flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              <span>Add New Marker</span>
-            </Link>
-          </motion.div>
+      <div className="mb-8">
+        <motion.div 
+          className="mb-6"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <h1 className="text-3xl font-bold mb-2 text-primary-800">Marker Inventory</h1>
+          <p className="text-gray-600">
+            Browse, search, and manage your marker collection. Filter by color family or search for specific markers.
+          </p>
+        </motion.div>
+        
+        {/* Search and Filter Section */}
+        <div className="mb-8">
+          <SearchMarkers onMarkerEdit={(marker) => {
+            setSelectedMarker(marker);
+            handleEditClick();
+          }} />
         </div>
         
-        <AnimatePresence mode="wait">
-          {loading ? (
-            <motion.div 
-              key="loading"
-              className="flex justify-center items-center py-20"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <svg className="animate-spin h-12 w-12 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            </motion.div>
-          ) : markers.length === 0 ? (
-            <motion.div 
-              key="empty"
-              className="text-center py-16 bg-white rounded-xl shadow-lg border border-gray-100"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.4 }}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
-              <p className="text-xl text-gray-600 mb-4">No markers found</p>
-              <p className="text-gray-500 mb-6">Start by adding your first marker</p>
-              <Link 
-                href="/add" 
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-md"
+        {/* Color family filter buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+          className="mb-8"
+        >
+          <h2 className="text-xl font-bold mb-3 text-primary-800">Browse by Color Family</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2 mb-4">
+            {colorFamilies.map((family, index) => (
+              <button 
+                key={index}
+                onClick={() => handleColorFamilyChange(family.value || null)}
+                disabled={loading}
+                className={`${family.bgClass} ${family.textClass} font-medium py-2 px-3 rounded-md transition-colors duration-200 ${
+                  (colorFamilyFilter === family.value || (!colorFamilyFilter && !family.value)) ? 'ring-2 ring-primary-500 ring-offset-2' : ''
+                }`}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                <span>Add Your First Marker</span>
-              </Link>
-            </motion.div>
-          ) : (
-            <motion.div 
-              key="content"
-              className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100 flex flex-col h-[80vh]">
-                <div className="mb-4">
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="Filter markers..."
-                      value={filterValue}
-                      onChange={(e) => setFilterValue(e.target.value)}
-                      className="block w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-primary-400 focus:border-primary-400"
-                    />
-                  </div>
-                  
-                  <div className="flex justify-between items-center mt-4">
-                    <p className="text-sm text-gray-500">
-                      {filteredMarkers.length} {filteredMarkers.length === 1 ? 'marker' : 'markers'}
-                    </p>
-                    
-                    <div className="flex items-center">
-                      <span className="text-sm text-gray-500 mr-2">Sort by:</span>
-                      <select
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value as any)}
-                        className="text-sm border border-gray-200 rounded py-1 px-2 focus:ring-2 focus:ring-primary-400 focus:border-primary-400"
-                      >
-                        <option value="markerNumber">Marker Number</option>
-                        <option value="colorName">Color</option>
-                        <option value="gridId">Grid</option>
-                        <option value="storage">Storage</option>
-                        <option value="brand">Brand</option>
-                      </select>
-                    </div>
+                {family.name}
+              </button>
+            ))}
+          </div>
+          
+          {/* Selected Marker Display - only show when a marker is actually selected */}
+          {selectedMarker && !isEditing && !deleteConfirmOpen && (
+            <AnimatePresence>
+              <motion.div 
+                className="mb-8 bg-white rounded-lg shadow-md p-6"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                <h3 className="text-xl font-semibold mb-3">Selected Marker</h3>
+                <div 
+                  className="w-full h-32 rounded-lg flex items-center justify-center mb-4"
+                  style={{ 
+                    backgroundColor: selectedMarker.colorHex,
+                    color: getContrastingTextColor(selectedMarker.colorHex)
+                  }}
+                >
+                  <div className="text-center">
+                    <p className="text-xl font-bold">{selectedMarker.colorName}</p>
+                    <p className="text-sm mt-1">{selectedMarker.brand?.name || 'No brand'} {selectedMarker.markerNumber}</p>
+                    {selectedMarker.gridId && (
+                      <p className="text-sm mt-2">
+                        Location: {selectedMarker.grid?.name || 'Unknown grid'} 
+                        {selectedMarker.columnNumber !== null && selectedMarker.rowNumber !== null && 
+                          ` (Column: ${selectedMarker.columnNumber}, Row: ${selectedMarker.rowNumber})`
+                        }
+                      </p>
+                    )}
+                    {selectedMarker.simpleStorageId && !selectedMarker.gridId && (
+                      <p className="text-sm mt-2">
+                        Location: {selectedMarker.simpleStorage?.name || 'Simple storage'}
+                      </p>
+                    )}
+                    {!selectedMarker.gridId && !selectedMarker.simpleStorageId && (
+                      <p className="text-sm mt-2">Location: Not stored</p>
+                    )}
                   </div>
                 </div>
+              </motion.div>
+            </AnimatePresence>
+          )}
+        </motion.div>
+
+        {/* Browse by Color Family Markers List */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3, delay: 0.2 }}
+          className="mb-8"
+        >
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+                <div className="flex items-center">
+                  <h2 className="text-lg font-bold">Markers</h2>
+                  <span className="text-sm bg-gray-100 text-gray-700 ml-2 px-2 py-0.5 rounded-full">
+                    {filteredMarkers.length}
+                  </span>
+                </div>
                 
-                <div className="divide-y divide-gray-100 flex-1 overflow-auto pr-1 space-y-2">
-                  <AnimatePresence>
-                    {sortedMarkers.map((marker) => (
-                      <motion.div
-                        key={marker.id}
-                        className={`p-3 mt-1 mb-1 ml-1 cursor-pointer rounded-lg border transition-all ${
-                          selectedMarker?.id === marker.id 
-                            ? 'ring-2 ring-blue-500 border-blue-300 bg-primary-50' 
-                            : 'hover:bg-gray-50 border-gray-50'
-                        }`}
-                        onClick={() => handleSelectMarker(marker)}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, height: 0, overflow: 'hidden' }}
-                        transition={{ duration: 0.2 }}
-                        layout
-                      >
-                        <div className="flex items-center justify-between">
-                          <p className="font-medium text-gray-800">{marker.markerNumber}</p>
-                          <div className="flex items-center gap-2">
-                            <div 
-                              className="w-4 h-4 rounded-full"
-                              style={{ 
-                                backgroundColor: marker.colorHex,
-                                border: '1px solid #e5e7eb'
-                              }}
-                            />
-                            <span className="text-xs text-gray-600">
-                              {marker.colorName}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex justify-between items-center mt-2 text-xs">
-                          <Link
-                            href={marker.gridId && marker.columnNumber !== null && marker.rowNumber !== null 
-                              ? `/grids/overview/${marker.gridId}` 
-                              : marker.simpleStorageId 
-                                ? `/storage/${marker.simpleStorageId}`
-                                : '#'
-                            }
-                            className={`text-gray-500 hover:text-blue-600 transition-colors ${(!marker.gridId && !marker.simpleStorageId) ? 'pointer-events-none' : ''}`}
-                            onClick={(e) => {
-                              if (!marker.gridId && !marker.simpleStorageId) {
-                                e.preventDefault();
-                              }
-                              // Don't propagate to the parent div onClick
-                              e.stopPropagation();
-                            }}
-                          >
-                            {getStorageLocationName(marker)}
-                          </Link>
-                          {marker.brand && (
-                            <span className="text-gray-500 italic">{marker.brand.name}</span>
-                          )}
-                        </div>
-                        {/* Quantity is now calculated from the number of same marker instances */}
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
+                <div className="flex items-center space-x-2">
+                  <select 
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as any)}
+                    className="text-sm border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  >
+                    <option value="markerNumber">Sort by Number</option>
+                    <option value="colorName">Sort by Color</option>
+                    <option value="brand">Sort by Brand</option>
+                    <option value="storage">Sort by Storage</option>
+                  </select>
                   
-                  {filteredMarkers.length === 0 && (
-                    <div className="text-center py-8 text-gray-500">
-                      <p>No markers match your filter</p>
-                      <button 
-                        onClick={() => setFilterValue('')}
-                        className="text-blue-600 hover:text-blue-700 mt-2 text-sm"
-                      >
-                        Clear filter
-                      </button>
-                    </div>
-                  )}
+                  <button
+                    onClick={handleExportCSV}
+                    title="Export to CSV"
+                    className="text-gray-500 hover:text-primary-600 p-1 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  </button>
                 </div>
               </div>
               
-              <div className="overflow-hidden">
-                <AnimatePresence mode="wait">
-                  {isEditing && selectedMarker ? (
-                    <MarkerEditForm 
-                      marker={selectedMarker}
-                      onMarkerUpdated={handleMarkerUpdated}
-                      onCancel={handleCancelEdit}
-                      grids={grids}
-                    />
-                  ) : deleteConfirmOpen && selectedMarker ? (
-                    <motion.div
-                      key="delete-confirm"
-                      className="bg-white p-6 rounded-xl shadow-lg border border-red-100"
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.3 }}
+              <div className="p-2">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <input
+                    type="text"
+                    value={filterValue}
+                    onChange={(e) => setFilterValue(e.target.value)}
+                    placeholder="Filter list..."
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+              </div>
+              
+              <div className="overflow-y-auto max-h-[600px] divide-y divide-gray-100">
+                {loading ? (
+                  <div className="p-4 text-center text-gray-500">
+                    Loading markers...
+                  </div>
+                ) : sortedMarkers.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500">
+                    No markers found matching your criteria
+                  </div>
+                ) : (
+                  sortedMarkers.map(marker => (
+                    <div 
+                      key={marker.id}
+                      className={`flex items-center p-3 cursor-pointer transition-colors ${
+                        selectedMarker?.id === marker.id ? 'bg-primary-50' : 'hover:bg-gray-50'
+                      }`}
                     >
-                      <div className="text-center">
-                        <div className="bg-secondary-100 w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </div>
-                        <h3 className="text-lg font-bold text-gray-900 mb-2">Delete Marker</h3>
-                        <p className="text-gray-600 mb-1">Are you sure you want to delete marker:</p>
-                        <p className="text-lg font-medium text-blue-700 mb-4">{selectedMarker.markerNumber} ({selectedMarker.colorName})</p>
-                        <div className="flex justify-center gap-3 mt-6">
-                          <button
-                            onClick={handleCancelDelete}
-                            className="px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-base font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={handleConfirmDelete}
-                            className="px-4 py-2 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-secondary-600 hover:bg-secondary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ) : selectedMarker ? (
-                    <motion.div 
-                      key={selectedMarker.id}
-                      className="bg-white p-6 rounded-xl shadow-lg border border-gray-100"
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                        <div className="relative rounded-lg p-4 mb-2">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <h3 className="text-2xl font-bold text-gray-900 mb-1">{selectedMarker.markerNumber}</h3>
-                              <div className="flex items-center gap-2">
-                                <div 
-                                  className="w-6 h-6 rounded-full"
-                                  style={{ 
-                                    backgroundColor: selectedMarker.colorHex,
-                                    border: '1px solid #e5e7eb',
-                                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                                  }}
-                                />
-                                <span className="text-gray-800 font-medium">{selectedMarker.colorName}</span>
-                              </div>
-                              {selectedMarker.brand && (
-                                <p className="mt-1 text-sm text-gray-700">Brand: {selectedMarker.brand.name}</p>
-                              )}
-                              <p className="text-sm text-blue-600 mt-2 font-medium">
-                                Total Markers: {sameMarkers.length} {sameMarkers.length > 1 ? 'locations' : 'location'}
-                              </p>
-                            </div>
-                          
-                          <div className="bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
-                            <p className="text-sm font-medium text-gray-800 mb-2">
-                              Locations ({loadingSameMarkers ? '...' : sameMarkers.length})
-                            </p>
-                            
-                            {loadingSameMarkers ? (
-                              <div className="flex justify-center py-2">
-                                <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                              </div>
-                            ) : (
-                              <div className="space-y-2 max-h-32 overflow-y-auto">
-                                {sameMarkers.map((sameMarker) => (
-                                  <div 
-                                    key={sameMarker.id} 
-                                    className={`text-xs p-1.5 rounded border ${selectedMarker?.id === sameMarker.id ? 'bg-primary-50 border-blue-200' : 'bg-white border-gray-100'}`}
-                                  >
-                                    <div className="flex items-center justify-between">
-                                      <span className="font-medium">
-                                        {getStorageLocationName(sameMarker)}
-                                      </span>
-                                    </div>
-                                    <div className="text-gray-500 mt-1">
-                                      {sameMarker.columnNumber !== null && sameMarker.rowNumber !== null
-                                        ? `Column ${sameMarker.columnNumber}, Row ${sameMarker.rowNumber}`
-                                        : sameMarker.simpleStorage ? 'Simple storage' : 'No position'
-                                      }
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        {/* Large color swatch */}
-                        <div 
-                          className="w-full h-20 rounded-lg my-4"
-                          style={{ 
-                            backgroundColor: selectedMarker.colorHex,
-                            border: '1px solid #e5e7eb',
-                            boxShadow: 'inset 0 2px 4px 0 rgba(0,0,0,0.06)'
-                          }}
-                          aria-label={`Color swatch for ${selectedMarker.colorName}`}
-                        ></div>
-
-                        <div className="mt-4 text-sm text-gray-500">
-                          <p>Added: {new Date(selectedMarker.createdAt).toLocaleDateString()}</p>
-                          <p>Last updated: {new Date(selectedMarker.updatedAt).toLocaleDateString()}</p>
-                        </div>
-                        
-                        <div className="mt-4 flex gap-2 pt-2">
-                          <Link 
-                            href={`/add?markerNumber=${encodeURIComponent(selectedMarker.markerNumber)}&colorName=${encodeURIComponent(selectedMarker.colorName)}&colorHex=${encodeURIComponent(selectedMarker.colorHex)}&brandId=${selectedMarker.brandId || ''}`}
-                            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                            </svg>
-                            Add Another Location
-                          </Link>
-                          
-                          <button 
-                            onClick={handleEditClick}
-                            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-blue-700 bg-primary-50 border border-blue-200 rounded-md hover:bg-primary-100 transition-colors"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                            Edit Marker
-                          </button>
-                          
-                          <button 
-                            onClick={handleDeleteConfirmClick}
-                            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-700 bg-secondary-50 border border-red-200 rounded-md hover:bg-secondary-100 transition-colors"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            Delete
-                          </button>
+                      <div 
+                        className="h-8 w-8 rounded-full mr-3"
+                        style={{ 
+                          backgroundColor: marker.colorHex,
+                          border: '1px solid #e5e7eb'
+                        }}
+                        onClick={() => handleSelectMarker(marker)}
+                      />
+                      <div className="flex-grow" onClick={() => handleSelectMarker(marker)}>
+                        <div>
+                          <p className="font-medium">
+                            {marker.colorName} - {marker.markerNumber}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {getStorageLocationName(marker)}
+                          </p>
                         </div>
                       </div>
                       
-                      <div>
-                        <h4 className="text-lg font-semibold text-gray-600 mb-4 flex items-center text-gray-800">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedMarker(marker);
+                            handleEditClick();
+                          }}
+                          className="p-2 text-gray-500 hover:text-primary-600 hover:bg-gray-100 rounded-full transition-colors"
+                          title="Edit marker"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                           </svg>
-                          Primary Location
-                        </h4>
+                        </button>
                         
-                        <div>
-                          {selectedMarker && selectedMarker.gridId && findGridById(selectedMarker.gridId) && selectedMarker.columnNumber !== null && selectedMarker.rowNumber !== null && (
-                            <GridComponent
-                              grid={findGridById(selectedMarker.gridId)!}
-                              highlightedMarker={selectedMarker}
-                              highlightedPosition={{
-                                columnNumber: selectedMarker.columnNumber,
-                                rowNumber: selectedMarker.rowNumber,
-                              }}
-                            />
-                          )}
-                          {selectedMarker && (!selectedMarker.gridId || selectedMarker.columnNumber === null || selectedMarker.rowNumber === null) && (
-                            <div className="text-gray-600">
-                              {selectedMarker.simpleStorageId && selectedMarker.simpleStorage ? (
-                                <div className="p-4 border rounded-md bg-white">
-                                  <h5 className="font-medium text-blue-600 mb-2">{selectedMarker.simpleStorage.name}</h5>
-                                  <p className="text-sm text-gray-500">{selectedMarker.simpleStorage.description || 'No description available'}</p>
-                                  <div className="mt-3">
-                                    <Link 
-                                      href={`/storage/${selectedMarker.simpleStorageId}`}
-                                      className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
-                                    >
-                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                      </svg>
-                                      View Storage Location
-                                    </Link>
-                                  </div>
-                                </div>
-                              ) : (
-                                <p>This marker is stored in simple storage but the storage information is not available.</p>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                        
-                        {/* Show other locations if there are any */}
-                        {sameMarkers.length > 1 && (
-                          <div className="mt-6">
-                            <h4 className="text-lg font-semibold text-gray-600 mb-4 flex items-center text-gray-800">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                              </svg>
-                              Other Locations
-                            </h4>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {sameMarkers
-                                .filter(marker => marker.id !== selectedMarker?.id)
-                                .map(marker => (
-                                  <div 
-                                    key={marker.id}
-                                    className="p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-primary-50 cursor-pointer transition-colors"
-                                    onClick={() => setSelectedMarker(marker)}
-                                  >
-                                    <div className="flex justify-between items-center">
-                                      <span className="font-medium text-blue-800">
-                                        {marker.gridId && findGridById(marker.gridId)?.name 
-                                          ? findGridById(marker.gridId)?.name 
-                                          : 'Simple Storage'
-                                        }
-                                      </span>
-                                    </div>
-                                    <div className="text-sm text-gray-600 mt-1">
-                                      {marker.columnNumber !== null && marker.rowNumber !== null
-                                        ? `Position: Column ${marker.columnNumber}, Row ${marker.rowNumber}`
-                                        : 'No grid position'
-                                      }
-                                    </div>
-                                  </div>
-                                ))
-                              }
-                            </div>
-                          </div>
+                        {selectedMarker?.id === marker.id && (
+                          <span>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-primary-600" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                          </span>
                         )}
                       </div>
-                    </motion.div>
-                  ) : (
-                    <motion.div 
-                      key="empty-selection"
-                      className="bg-white p-6 rounded-xl shadow-md border border-gray-100 flex items-center justify-center min-h-[300px]"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <div className="text-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                        </svg>
-                        <p className="text-lg text-gray-500">Select a marker to view details</p>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                    </div>
+                  ))
+                )}
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
+            </div>
+            
+            {isEditing && selectedMarker ? (
+              <div className="mt-6">
+                <MarkerEditForm 
+                  marker={selectedMarker!} 
+                  onCancel={handleCancelEdit}
+                  onSaved={handleMarkerUpdated}
+                  grids={grids}
+                />
+              </div>
+            ) : deleteConfirmOpen && selectedMarker ? (
+              <div className="mt-6 bg-white rounded-lg border border-red-200 overflow-hidden p-6">
+                <h3 className="text-xl font-bold text-red-600 mb-4">Confirm Deletion</h3>
+                <p className="mb-6">
+                  Are you sure you want to delete this marker?
+                  <br />
+                  <span className="font-semibold">{selectedMarker.markerNumber} - {selectedMarker.colorName}</span>
+                </p>
+                
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleConfirmDelete}
+                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md transition-colors"
+                  >
+                    Delete Marker
+                  </button>
+                  <button
+                    onClick={handleCancelDelete}
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-md transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : null}
+        </motion.div>
+      </div>
     </Layout>
   );
 }

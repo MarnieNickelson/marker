@@ -27,9 +27,35 @@ interface GridProps {
     columnNumber: number;
     rowNumber: number;
   };
+  // Support the old way of passing highlight position
+  highlight?: {
+    column: number;
+    row: number;
+  };
+  // Support direct passing of highlight coordinates
+  highlightColumn?: number;
+  highlightRow?: number;
+  // Support size options
+  size?: 'small' | 'medium' | 'large';
 }
 
-const Grid: React.FC<GridProps> = ({ grid, highlightedMarker, highlightedPosition }) => {
+const Grid: React.FC<GridProps> = ({ 
+  grid, 
+  highlightedMarker, 
+  highlightedPosition, 
+  highlight,
+  highlightColumn,
+  highlightRow,
+  size = 'medium'
+}) => {
+  // Determine the actual highlight position from various props
+  const effectiveHighlight = {
+    columnNumber: highlightColumn || highlight?.column || highlightedPosition?.columnNumber || 
+                 (highlightedMarker?.columnNumber !== undefined ? highlightedMarker.columnNumber : null),
+    rowNumber: highlightRow || highlight?.row || highlightedPosition?.rowNumber || 
+              (highlightedMarker?.rowNumber !== undefined ? highlightedMarker.rowNumber : null)
+  };
+
   const columns = Array.from({ length: grid.columns }, (_, i) => i + 1);
   const rows = Array.from({ length: grid.rows }, (_, i) => i + 1);
   
@@ -42,6 +68,27 @@ const Grid: React.FC<GridProps> = ({ grid, highlightedMarker, highlightedPositio
     header: isEven ? 'bg-primary-600 text-white' : 'bg-accent-600 text-white',
     highlight: isEven ? 'bg-primary-400 shadow-lg shadow-primary-100' : 'bg-accent-400 shadow-lg shadow-accent-100',
   };
+
+  // Size-specific styles
+  const sizeClasses = {
+    small: {
+      container: 'text-xs',
+      cell: 'h-7 w-7 min-w-7',
+      header: 'h-7 min-w-7',
+    },
+    medium: {
+      container: 'text-sm',
+      cell: 'h-9 w-9 min-w-9',
+      header: 'h-9 min-w-9',
+    },
+    large: {
+      container: 'text-base',
+      cell: 'h-11 w-11 min-w-11',
+      header: 'h-11 min-w-11',
+    }
+  };
+
+  const sizeClass = sizeClasses[size];
 
   // Create grid template columns style that adapts to container width
   const gridTemplateColumns = `auto repeat(${grid.columns}, minmax(32px, 1fr))`;
@@ -62,11 +109,11 @@ const Grid: React.FC<GridProps> = ({ grid, highlightedMarker, highlightedPositio
           style={{ gridTemplateColumns }}
         >
           {/* Column headers */}
-          <div className="h-10 flex items-center justify-center font-bold"></div>
+          <div className={`h-10 flex items-center justify-center font-bold ${sizeClass.header}`}></div>
           {columns.map((col) => (
             <div 
               key={col} 
-              className="h-10 flex items-center justify-center font-medium border-b-2 border-gray-300"
+              className={`h-10 flex items-center justify-center font-medium border-b-2 border-gray-300 ${sizeClass.header}`}
             >
               {col}
             </div>
@@ -76,16 +123,15 @@ const Grid: React.FC<GridProps> = ({ grid, highlightedMarker, highlightedPositio
           {rows.map((row) => (
             <React.Fragment key={row}>
               {/* Row headers */}
-              <div className="h-10 flex items-center justify-center font-medium border-r-2 border-gray-300">
+              <div className={`h-10 flex items-center justify-center font-medium border-r-2 border-gray-300 ${sizeClass.header}`}>
                 {row}
               </div>
               
               {/* Cells */}
               {columns.map((col) => {
                 const isHighlighted = 
-                  highlightedPosition && 
-                  highlightedPosition.columnNumber === col && 
-                  highlightedPosition.rowNumber === row;
+                  effectiveHighlight.columnNumber === col && 
+                  effectiveHighlight.rowNumber === row;
                 
                 return (
                   <div 
