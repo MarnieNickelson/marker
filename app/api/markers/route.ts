@@ -73,7 +73,7 @@ export async function GET(request: Request) {
       }
     };
 
-    console.log("API include options:", includeOptions);
+    // console.log("API include options:", includeOptions);
 
     const markers = await prisma.marker.findMany({
       where,
@@ -83,19 +83,25 @@ export async function GET(request: Request) {
       }
     });
 
-    // Log first marker for debugging
-    if (markers.length > 0) {
-      console.log("First marker sample:", {
-        id: markers[0].id,
-        hasGrid: markers[0].grid !== undefined,
-        hasSimpleStorage: markers[0].simpleStorage !== undefined,
-      });
-    }
+    // // Log first marker for debugging
+    // if (markers.length > 0) {
+    //   console.log("First marker sample:", {
+    //     id: markers[0].id,
+    //     hasGrid: markers[0].grid !== undefined,
+    //     hasSimpleStorage: markers[0].simpleStorage !== undefined,
+    //   });
+    // }
 
     // Apply color family filtering if specified
     let filteredMarkers = markers;
     if (colorFamily) {
       filteredMarkers = markers.filter(marker => {
+        // Check if there's a manually set color family
+        if ('colorFamily' in marker && marker.colorFamily) {
+          return marker.colorFamily === colorFamily;
+        }
+        
+        // Otherwise, use auto-detection logic
         // Special handling for brown and black which need precedence
         if (colorFamily === 'brown') {
           return isColorInFamily(marker.colorHex, 'brown');
@@ -152,7 +158,8 @@ export async function POST(request: Request) {
     const { 
       markerNumber, 
       colorName, 
-      colorHex, 
+      colorHex,
+      colorFamily,  // Added colorFamily field 
       brandId, // Now using brandId instead of brand
       quantity, 
       gridId, 
@@ -253,6 +260,7 @@ export async function POST(request: Request) {
       markerNumber,
       colorName,
       colorHex: colorHex || '#000000',
+      colorFamily: colorFamily === '' ? null : colorFamily, // Empty string means auto-detection
       brandId: brandId || null,
       quantity: 1,
       userId: userId,

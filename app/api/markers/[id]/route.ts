@@ -80,6 +80,7 @@ export async function PUT(
       markerNumber,
       colorName,
       colorHex,
+      colorFamily,
       brandId,
       quantity,
       storageType,
@@ -176,6 +177,8 @@ export async function PUT(
       ...(markerNumber && { markerNumber }),
       ...(colorName && { colorName }),
       ...(colorHex && { colorHex }),
+      // colorFamily can be null (for auto detection) or a string value
+      colorFamily: colorFamily === '' ? null : colorFamily,
       ...(brandId !== undefined && { brandId }),
       // Always set quantity to 1 since we're computing it from instances
       quantity: 1,

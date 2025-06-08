@@ -71,3 +71,39 @@ export const isColorInFamily = (hex: string, family: string): boolean => {
     default: return false;
   }
 };
+
+// Helper function to get color family of a marker, respecting manual overrides
+export const getMarkerColorFamily = (marker: { colorHex: string, colorFamily?: string | null }): string => {
+  // Use manually set color family if available
+  if (marker.colorFamily) {
+    return marker.colorFamily;
+  }
+  
+  // Otherwise auto-detect
+  const { h, s, l } = hexToHSL(marker.colorHex);
+  
+  // Handle grayscale colors first
+  if (s < 0.1) {
+    if (l < 0.15) return 'black';
+    if (l > 0.85) return 'white';
+    if (l >= 0.15 && l <= 0.85) return 'gray';
+  }
+  
+  // Check for brown as special case
+  if ((h >= 15 && h < 50 && s > 0.1 && s < 0.7 && l < 0.5) || 
+      (h >= 20 && h < 40 && s > 0.3 && s < 0.8 && l < 0.4)) {
+    return 'brown';
+  }
+  
+  // Color families based on hue ranges
+  if (h < 15 || h >= 345) return 'red';
+  if (h >= 15 && h < 40) return 'orange';
+  if (h >= 40 && h < 65) return 'yellow';
+  if (h >= 65 && h < 165) return 'green';
+  if (h >= 165 && h < 195) return 'cyan';
+  if (h >= 195 && h < 255) return 'blue';
+  if (h >= 255 && h < 285) return 'purple';
+  if (h >= 285 && h < 345) return 'pink';
+  
+  return 'unknown';
+};

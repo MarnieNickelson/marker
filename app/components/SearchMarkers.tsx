@@ -282,7 +282,19 @@ const SearchMarkers: React.FC<SearchMarkersProps> = ({
             >
               <div className="text-center">
                 <p className="text-xl font-bold">{selectedMarker.colorName} - {selectedMarker.markerNumber}</p>
-                <p className="text-sm mt-1">{selectedMarker.brand?.name || 'No brand'} ~ {getColorFamily(selectedMarker.colorHex)}</p>
+                <p className="text-sm mt-1">
+                  {selectedMarker.brand?.name || 'No brand'} ~ 
+                  {selectedMarker.colorFamily ? (
+                    <span title="Manually set color family" className="inline-flex items-center">
+                      {selectedMarker.colorFamily}
+                      <span className="ml-1 w-2 h-2 rounded-full bg-primary-400" title="Manually set"></span>
+                    </span>
+                  ) : (
+                    <span title="Auto-detected color family">
+                      {getColorFamily(selectedMarker.colorHex)}
+                    </span>
+                  )}
+                </p>
                 {selectedMarker.gridId && (
                   <p className="text-sm mt-2">
                     Location: {selectedMarker.grid?.name || 'Unknown grid'} 

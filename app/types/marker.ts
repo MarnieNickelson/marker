@@ -27,6 +27,7 @@ export interface Marker {
   markerNumber: string;
   colorName: string;
   colorHex: string;
+  colorFamily: string | null; // Optional manual override for color family
   brandId: string | null;
   brand?: Brand;
   quantity: number;

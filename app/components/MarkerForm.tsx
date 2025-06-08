@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { Grid, Brand } from '../types/marker';
 import { useSearchParams } from 'next/navigation';
 import { fetchWithAuth } from '../utils/api';
+import { isColorInFamily } from '../utils/colorUtils';
 
 interface SimpleStorage {
   id: string;
@@ -20,6 +21,22 @@ interface MarkerFormProps {
   isAddingLocation?: boolean; // When true, only location fields are editable
 }
 
+const colorFamilies = [
+  { name: 'Auto (Detect from Color)', value: '' },
+  { name: 'Red', value: 'red' },
+  { name: 'Orange', value: 'orange' },
+  { name: 'Yellow', value: 'yellow' },
+  { name: 'Green', value: 'green' },
+  { name: 'Cyan', value: 'cyan' },
+  { name: 'Blue', value: 'blue' },
+  { name: 'Purple', value: 'purple' },
+  { name: 'Pink', value: 'pink' },
+  { name: 'Brown', value: 'brown' },
+  { name: 'Gray', value: 'gray' },
+  { name: 'Black', value: 'black' },
+  { name: 'White', value: 'white' }
+];
+
 const MarkerForm: React.FC<MarkerFormProps> = ({ onMarkerAdded, grids: providedGrids, isAddingLocation = false }) => {
   const searchParams = useSearchParams();
   const [grids, setGrids] = useState<Grid[]>(providedGrids || []);
@@ -29,6 +46,7 @@ const MarkerForm: React.FC<MarkerFormProps> = ({ onMarkerAdded, grids: providedG
     markerNumber: searchParams.get('markerNumber') || '',
     colorName: searchParams.get('colorName') || '',
     colorHex: searchParams.get('colorHex') || '#000000',
+    colorFamily: '', // Empty string means auto-detection
     brandId: searchParams.get('brandId') || '', // Changed from brand to brandId
     storageType: 'grid', // 'grid' or 'simple'
     gridId: '',
@@ -41,6 +59,24 @@ const MarkerForm: React.FC<MarkerFormProps> = ({ onMarkerAdded, grids: providedG
   const [loadingBrands, setLoadingBrands] = useState(true);
   const [loadingSimpleStorages, setLoadingSimpleStorages] = useState(true);
   
+  // Get auto-detected color family
+  const getAutoColorFamily = (hex: string): string => {
+    for (const family of colorFamilies.filter(f => f.value !== '')) {
+      if (isColorInFamily(hex, family.value)) {
+        return family.value;
+      }
+    }
+    return 'unknown';
+  };
+  
+  // State for displaying auto-detected color family
+  const [autoColorFamily, setAutoColorFamily] = useState(getAutoColorFamily(formData.colorHex));
+
+  // Update auto color family when hex changes
+  useEffect(() => {
+    setAutoColorFamily(getAutoColorFamily(formData.colorHex));
+  }, [formData.colorHex]);
+
   // Fetch available grids if not provided
   useEffect(() => {
     if (providedGrids) {
@@ -129,6 +165,14 @@ const MarkerForm: React.FC<MarkerFormProps> = ({ onMarkerAdded, grids: providedG
   // Find current grid dimensions
   const currentGrid = grids.find(grid => grid.id === formData.gridId);
 
+  // Auto-detect color family based on color hex
+  useEffect(() => {
+    if (formData.colorHex && formData.colorFamily === '') {
+      const detectedFamily = colorFamilies.find(family => isColorInFamily(formData.colorHex, family.value));
+      setFormData(prev => ({ ...prev, colorFamily: detectedFamily ? detectedFamily.value : '' }));
+    }
+  }, [formData.colorHex, formData.colorFamily]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -186,6 +230,7 @@ const MarkerForm: React.FC<MarkerFormProps> = ({ onMarkerAdded, grids: providedG
           markerNumber: '',
           colorName: '',
           colorHex: '#000000',
+          colorFamily: '', // Reset to auto-detection
           brandId: '', 
           storageType: currentStorageType,
           gridId: currentStorageType === 'grid' ? currentGridId : '',
@@ -305,6 +350,37 @@ const MarkerForm: React.FC<MarkerFormProps> = ({ onMarkerAdded, grids: providedG
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Color Family Selection */}
+        <div>
+          <label htmlFor="colorFamily" className="block text-sm font-medium text-gray-700 mb-1">
+            Color Family
+          </label>
+          <select
+            id="colorFamily"
+            name="colorFamily"
+            value={formData.colorFamily}
+            onChange={handleChange}
+            disabled={isAddingLocation}
+            className={`block w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-primary-400 focus:border-primary-400 transition-colors ${
+              isAddingLocation ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : ''
+            }`}
+          >
+            {colorFamilies.map(family => (
+              <option key={family.value} value={family.value}>
+                {family.name}
+              </option>
+            ))}
+          </select>
+          {!formData.colorFamily && (
+            <div className="mt-1 text-xs text-gray-500 flex items-center">
+              <span>Auto-detected: </span>
+              <span className="ml-1 px-2 py-0.5 rounded-full text-white text-xs font-medium bg-primary-500">
+                {autoColorFamily}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Brand dropdown */}

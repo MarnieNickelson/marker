@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import { Marker } from './types/marker';
 import { useRouter } from 'next/navigation';
 import { fetchWithAuth } from './utils/api';
+import { getMarkerColorFamily } from './utils/colorUtils';
 
 export default function Home() {
   const { data: session, status } = useSession();
@@ -85,17 +86,25 @@ export default function Home() {
   };
 
   // Find the color family of a marker
-  const getColorFamily = (hex: string): string => {
+  const getColorFamily = (marker: Marker): string => {
+    // Use manually set color family if available
+    if (marker.colorFamily) {
+      return marker.colorFamily;
+    }
+    
+    // Otherwise auto-detect from hex
+    const hex = marker.colorHex;
+    
     // Remove # if present and validate hex format
-    hex = hex.replace(/^#/, '');
-    if (!/^[0-9A-Fa-f]{6}$/.test(hex)) {
+    const cleanHex = hex.replace(/^#/, '');
+    if (!/^[0-9A-Fa-f]{6}$/.test(cleanHex)) {
       return 'unknown';
     }
 
     // Convert hex to RGB
-    const r = parseInt(hex.substring(0, 2), 16) / 255;
-    const g = parseInt(hex.substring(2, 4), 16) / 255;
-    const b = parseInt(hex.substring(4, 6), 16) / 255;
+    const r = parseInt(cleanHex.substring(0, 2), 16) / 255;
+    const g = parseInt(cleanHex.substring(2, 4), 16) / 255;
+    const b = parseInt(cleanHex.substring(4, 6), 16) / 255;
 
     // Find max and min values for RGB
     const max = Math.max(r, g, b);
@@ -257,10 +266,16 @@ export default function Home() {
                           <p className="font-medium">
                             {marker.brand?.name && `${marker.brand.name} `}{marker.markerNumber}
                           </p>
-                          <p className="text-sm text-gray-600">{marker.colorName}</p>
-                          <p className="text-xs text-gray-500">
-                            {getStorageLocationName(marker)}
-                          </p>
+                          <p className="text-sm font-medium">{marker.colorName} - {marker.markerNumber}</p>
+                          <div className="flex items-center text-xs text-gray-500">
+                            {marker.brand?.name || 'No brand'} 
+                            {marker.colorFamily && (
+                              <span className="ml-1 flex items-center" title="Manually set color family">
+                                • {marker.colorFamily}
+                                <span className="ml-1 w-1.5 h-1.5 rounded-full bg-primary-400"></span>
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="text-primary-600">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">

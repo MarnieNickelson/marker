@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { Grid, Marker, Brand, SimpleStorage } from '../types/marker';
+import { isColorInFamily } from '../utils/colorUtils';
 
 interface MarkerEditFormProps {
   marker: Marker;
@@ -25,10 +26,39 @@ const MarkerEditForm: React.FC<MarkerEditFormProps> = ({
   const [brands, setBrands] = useState<Brand[]>([]);
   const [simpleStorages, setSimpleStorages] = useState<SimpleStorage[]>([]);
   const [originalColorHex, setOriginalColorHex] = useState(marker.colorHex); // Store original color hex
+  
+  // Color family options
+  const colorFamilies = [
+    { name: 'Auto (Detect from Color)', value: '' },
+    { name: 'Red', value: 'red' },
+    { name: 'Orange', value: 'orange' },
+    { name: 'Yellow', value: 'yellow' },
+    { name: 'Green', value: 'green' },
+    { name: 'Cyan', value: 'cyan' },
+    { name: 'Blue', value: 'blue' },
+    { name: 'Purple', value: 'purple' },
+    { name: 'Pink', value: 'pink' },
+    { name: 'Brown', value: 'brown' },
+    { name: 'Gray', value: 'gray' },
+    { name: 'Black', value: 'black' },
+    { name: 'White', value: 'white' }
+  ];
+  
+  // Get auto-detected color family
+  const getAutoColorFamily = (hex: string): string => {
+    for (const family of colorFamilies.filter(f => f.value !== '')) {
+      if (isColorInFamily(hex, family.value)) {
+        return family.value;
+      }
+    }
+    return 'unknown';
+  };
+  
   const [formData, setFormData] = useState({
     markerNumber: marker.markerNumber,
     colorName: marker.colorName,
     colorHex: marker.colorHex,
+    colorFamily: marker.colorFamily || '', // Use stored color family or empty for auto
     brandId: marker.brandId || '', // Use brandId instead of brand
     storageType: marker.gridId ? 'grid' : 'simple',
     gridId: marker.gridId || '',
@@ -36,6 +66,15 @@ const MarkerEditForm: React.FC<MarkerEditFormProps> = ({
     rowNumber: String(marker.rowNumber || ''),
     simpleStorageId: marker.simpleStorageId || '',
   });
+  
+  // Get auto-detected color family for display
+  const [autoColorFamily, setAutoColorFamily] = useState(getAutoColorFamily(formData.colorHex));
+
+  // Update auto color family when hex changes
+  useEffect(() => {
+    setAutoColorFamily(getAutoColorFamily(formData.colorHex));
+  }, [formData.colorHex]);
+  
   const [loading, setLoading] = useState(false);
   const [loadingGrids, setLoadingGrids] = useState(!providedGrids);
   const [loadingBrands, setLoadingBrands] = useState(true);
@@ -111,6 +150,11 @@ const MarkerEditForm: React.FC<MarkerEditFormProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    // Update auto color family when hex color changes
+    if (name === 'colorHex') {
+      setAutoColorFamily(getAutoColorFamily(value));
+    }
   };
   
   // Find current grid dimensions
@@ -125,6 +169,7 @@ const MarkerEditForm: React.FC<MarkerEditFormProps> = ({
       markerNumber: formData.markerNumber,
       colorName: formData.colorName,
       colorHex: formData.colorHex,
+      colorFamily: formData.colorFamily || null, // Empty string will be sent as null for auto detection
       brandId: formData.brandId || undefined,
       storageType: formData.storageType,
     };
@@ -254,6 +299,45 @@ const MarkerEditForm: React.FC<MarkerEditFormProps> = ({
               </div>
             </div>
           </div>
+        </div>
+        
+        {/* Color Family Selection */}
+        <div>
+          <label htmlFor="colorFamily" className="block text-sm font-medium text-gray-700 mb-1">
+            Color Family
+          </label>
+          <select
+            id="colorFamily"
+            name="colorFamily"
+            value={formData.colorFamily}
+            onChange={handleChange}
+            className="block w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors"
+          >
+            {colorFamilies.map(family => (
+              <option key={family.value} value={family.value}>
+                {family.name}
+              </option>
+            ))}
+          </select>
+          {!formData.colorFamily && (
+            <div className="mt-1 text-xs text-gray-500 flex items-center">
+              <span>Auto-detected: </span>
+              <span className="ml-1 px-2 py-0.5 rounded-full text-white text-xs font-medium bg-blue-500">
+                {autoColorFamily}
+              </span>
+            </div>
+          )}
+          {formData.colorFamily && (
+            <div className="flex justify-end mt-1">
+              <button 
+                type="button" 
+                onClick={() => setFormData({...formData, colorFamily: ''})}
+                className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+              >
+                Reset to auto-detection
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Brand field */}
@@ -425,6 +509,29 @@ const MarkerEditForm: React.FC<MarkerEditFormProps> = ({
             </div>
           </>
         )}
+
+        {/* Color Family Selection */}
+        <div>
+          <label htmlFor="colorFamily" className="block text-sm font-medium text-gray-700 mb-1">
+            Color Family
+          </label>
+          <select
+            id="colorFamily"
+            name="colorFamily"
+            value={formData.colorFamily}
+            onChange={handleChange}
+            className="block w-full px-4 py-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-colors"
+          >
+            {colorFamilies.map(family => (
+              <option key={family.value} value={family.value}>
+                {family.name}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-gray-500">
+            Auto-detected: <span className="font-medium text-gray-700">{autoColorFamily}</span>
+          </p>
+        </div>
 
         <div className="flex justify-between gap-4 pt-3">
           <button
