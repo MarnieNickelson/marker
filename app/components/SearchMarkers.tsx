@@ -453,7 +453,7 @@ const SearchMarkers: React.FC<SearchMarkersProps> = ({
                     {marker.brand?.name || 'No brand'} ~ {getColorFamily(marker.colorHex)}
                   </p>
                   <p className="text-sm text-gray-500">
-                    {getStorageLocationName(marker)}
+                    {getStorageLocationName(marker)} • Last updated: {new Date(marker.updatedAt).toLocaleDateString()}
                   </p>
                 </div>
                 {onMarkerEdit && (

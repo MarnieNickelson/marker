@@ -18,6 +18,7 @@ interface ColorHistoryItem {
   columnNumber: number | null;
   rowNumber: number | null;
   timestamp: Date;
+  updatedAt: Date; // Marker's last updated date
   isRandom: boolean; // To distinguish between random and picked colors
 }
 
@@ -40,7 +41,8 @@ export default function ColorPage() {
         // Convert string dates back to Date objects
         const historyWithDates = parsedHistory.map((item: any) => ({
           ...item,
-          timestamp: new Date(item.timestamp)
+          timestamp: new Date(item.timestamp),
+          updatedAt: item.updatedAt ? new Date(item.updatedAt) : new Date() // Provide a fallback for older saved data
         }));
         console.log('Loaded color history:', historyWithDates);
         setColorHistory(historyWithDates);
@@ -69,6 +71,7 @@ export default function ColorPage() {
       columnNumber: marker.columnNumber,
       rowNumber: marker.rowNumber,
       timestamp: new Date(),
+      updatedAt: marker.updatedAt,
       isRandom: isRandom
     };
     
@@ -952,6 +955,9 @@ export default function ColorPage() {
                         Not stored in any location
                       </p>
                     )}
+                    <p className="text-sm mt-2 text-gray-500 italic">
+                      Last updated: {new Date(currentColor.updatedAt).toLocaleDateString()}
+                    </p>
                   </div>
                 </div>
                 
@@ -1070,6 +1076,9 @@ export default function ColorPage() {
                           ) : (
                             'No grid assigned'
                           )}
+                        </p>
+                        <p className="text-gray-600 mt-1">
+                          Last updated: {new Date(item.updatedAt).toLocaleDateString()}
                         </p>
                       </div>
                     </div>

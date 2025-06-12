@@ -276,6 +276,9 @@ export default function Home() {
                               </span>
                             )}
                           </div>
+                          <div className="text-xs text-gray-500">
+                            {getStorageLocationName(marker)} • Last updated: {new Date(marker.updatedAt).toLocaleDateString()}
+                          </div>
                         </div>
                         <div className="text-primary-600">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
