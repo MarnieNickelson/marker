@@ -416,8 +416,8 @@ export default function ColorPage() {
     try {
       const { h, s, l } = hexToHSL(currentColor.colorHex);
       
-      // Get all markers
-      const markers = await fetchWithAuth<Marker[]>('/api/markers');
+      // Get all markers with grid information
+      const markers = await fetchWithAuth<Marker[]>('/api/markers?includeGrid=true');
       
       if (!markers || markers.length === 0) {
         return;
@@ -481,7 +481,23 @@ export default function ColorPage() {
       setLoading(true);
       
       if (highlightColor) {
-        // Use the pre-calculated highlight color if available
+        // If gridId exists, load the complete marker with grid info
+        if (highlightColor.gridId) {
+          try {
+            // Get the complete marker data with grid information
+            const completeMarker = await fetchWithAuth<Marker>(`/api/markers/${highlightColor.id}?includeGrid=true`);
+            if (completeMarker) {
+              addMarkerToHistory(completeMarker, false);
+              toast.success(`Highlight color: ${completeMarker.colorName}`);
+              return;
+            }
+          } catch (error) {
+            console.error("Error fetching complete marker:", error);
+            // Fall back to using existing highlightColor if fetch fails
+          }
+        }
+        
+        // Use the pre-calculated highlight color if no gridId or if fetch failed
         addMarkerToHistory(highlightColor, false);
         toast.success(`Highlight color: ${highlightColor.colorName}`);
         return;
@@ -559,8 +575,8 @@ export default function ColorPage() {
     try {
       const { h, s, l } = hexToHSL(currentColor.colorHex);
       
-      // Get all markers
-      const markers = await fetchWithAuth<Marker[]>('/api/markers');
+      // Get all markers with grid information
+      const markers = await fetchWithAuth<Marker[]>('/api/markers?includeGrid=true');
       
       if (!markers || markers.length === 0) {
         return;
@@ -624,7 +640,23 @@ export default function ColorPage() {
       setLoading(true);
       
       if (shadowColor) {
-        // Use the pre-calculated shadow color if available
+        // If gridId exists, load the complete marker with grid info
+        if (shadowColor.gridId) {
+          try {
+            // Get the complete marker data with grid information
+            const completeMarker = await fetchWithAuth<Marker>(`/api/markers/${shadowColor.id}?includeGrid=true`);
+            if (completeMarker) {
+              addMarkerToHistory(completeMarker, false);
+              toast.success(`Shadow color: ${completeMarker.colorName}`);
+              return;
+            }
+          } catch (error) {
+            console.error("Error fetching complete marker:", error);
+            // Fall back to using existing shadowColor if fetch fails
+          }
+        }
+        
+        // Use the pre-calculated shadow color if no gridId or if fetch failed
         addMarkerToHistory(shadowColor, false);
         toast.success(`Shadow color: ${shadowColor.colorName}`);
         return;
@@ -939,7 +971,7 @@ export default function ColorPage() {
                     <p className="text-sm mt-1">{currentColor.brand?.name || 'No brand'} {currentColor.markerNumber}</p>
                     {currentColor.gridId && (
                       <p className="text-sm mt-2">
-                        Location: {currentColor.grid?.name || 'Unknown grid'} 
+                        Location: {currentColor.grid ? currentColor.grid.name : 'Loading...'} 
                         {currentColor.columnNumber !== null && currentColor.rowNumber !== null && 
                           ` (Column: ${currentColor.columnNumber}, Row: ${currentColor.rowNumber})`
                         }
@@ -955,7 +987,9 @@ export default function ColorPage() {
                         Not stored in any location
                       </p>
                     )}
-                    <p className="text-sm mt-2 text-gray-500 italic">
+                    <p className="text-sm mt-2 italic" style={{
+                      color: getContrastingTextColor(currentColor.colorHex)
+                    }}>
                       Last updated: {new Date(currentColor.updatedAt).toLocaleDateString()}
                     </p>
                   </div>
@@ -1077,7 +1111,9 @@ export default function ColorPage() {
                             'No grid assigned'
                           )}
                         </p>
-                        <p className="text-gray-600 mt-1">
+                        <p className="mt-1" style={{ 
+                          color: getContrastingTextColor(item.colorHex)
+                        }}>
                           Last updated: {new Date(item.updatedAt).toLocaleDateString()}
                         </p>
                       </div>
