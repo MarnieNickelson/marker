@@ -397,15 +397,18 @@ export default function ColorPage() {
   // We use undefined for initial state, null for "not found", and Marker for found colors
   const [highlightColor, setHighlightColor] = useState<Marker | null | undefined>(undefined);
   const [shadowColor, setShadowColor] = useState<Marker | null | undefined>(undefined);
+  const [complementaryColor, setComplementaryColor] = useState<Marker | null | undefined>(undefined);
   
   // Updates highlight and shadow color suggestions when current color changes
   useEffect(() => {
     if (currentColor) {
       findHighlightOptions();
       findShadowOptions();
+      findComplementaryOptions();
     } else {
       setHighlightColor(undefined);
       setShadowColor(undefined);
+      setComplementaryColor(undefined);
     }
   }, [currentColor]);
   
@@ -727,6 +730,110 @@ export default function ColorPage() {
     }
   };
 
+  // Find potential complementary colors without selecting them
+  const findComplementaryOptions = async () => {
+    if (!currentColor) return;
+
+    try {
+      const { h, s, l } = hexToHSL(currentColor.colorHex);
+      
+      // Get all markers with grid information
+      const markers = await fetchWithAuth<Marker[]>('/api/markers?includeGrid=true');
+      
+      if (!markers || markers.length === 0) {
+        return;
+      }
+      
+      // Calculate complementary hue (opposite on the color wheel, 180 degrees away)
+      const complementaryHue = (h + 180) % 360;
+      
+      // Calculate HSL for all markers and find ones with similar hue to the complementary
+      const suitableComplements = markers
+        .map(marker => {
+          const hsl = hexToHSL(marker.colorHex);
+          // Calculate hue distance to the complementary hue
+          const hueDiff = Math.min(
+            Math.abs(hsl.h - complementaryHue),
+            360 - Math.abs(hsl.h - complementaryHue)
+          );
+          
+          // Calculate a score based on complementary hue similarity
+          // Lower score is better
+          let score = hueDiff * 2; // Give more weight to hue match
+          
+          // We want colors with similar saturation and lightness as the original
+          // Penalize colors with very different saturation
+          score += Math.abs(hsl.s - s) * 40;
+          
+          // Penalize colors with very different lightness
+          score += Math.abs(hsl.l - l) * 40;
+          
+          // Hard cutoff for hue difference to keep close to complementary
+          // If hue differs by more than 30 degrees from complementary, heavily penalize
+          if (hueDiff > 30) {
+            score += 2000;
+          }
+          
+          return { marker, score };
+        })
+        .filter(item => item.score < 1000) // Only consider valid complementary colors
+        .sort((a, b) => a.score - b.score); // Sort by lowest score
+      
+      if (suitableComplements.length > 0) {
+        setComplementaryColor(suitableComplements[0].marker);
+      } else {
+        // No suitable complementary found
+        setComplementaryColor(null);
+      }
+    } catch (error) {
+      console.error('Error finding complementary options:', error);
+    }
+  };
+
+  // Find a complementary color for the current color
+  const findComplementaryColor = async () => {
+    if (!currentColor) {
+      toast.error("Select a color first before finding a complementary color");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      if (complementaryColor) {
+        // If gridId exists, load the complete marker with grid info
+        if (complementaryColor.gridId) {
+          try {
+            // Get the complete marker data with grid information
+            const completeMarker = await fetchWithAuth<Marker>(`/api/markers/${complementaryColor.id}?includeGrid=true`);
+            if (completeMarker) {
+              addMarkerToHistory(completeMarker, false);
+              toast.success(`Complementary color: ${completeMarker.colorName}`);
+              return;
+            }
+          } catch (error) {
+            console.error("Error fetching complete marker:", error);
+            // Fall back to using existing complementaryColor if fetch fails
+          }
+        }
+        
+        // Use the pre-calculated complementary color if no gridId or if fetch failed
+        addMarkerToHistory(complementaryColor, false);
+        toast.success(`Complementary color: ${complementaryColor.colorName}`);
+        return;
+      } else {
+        // No suitable complementary found
+        toast.error("No suitable complementary color found in your inventory");
+        return;
+      }
+    } catch (error) {
+      toast.error('Failed to find complementary color');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Determine text color based on background color for readability
   const getContrastingTextColor = (hexColor: string): string => {
     const hex = hexColor.replace('#', '');
@@ -995,45 +1102,66 @@ export default function ColorPage() {
                   </div>
                 </div>
                 
-                {/* Highlight and Shadow buttons */}
-                <div className="flex flex-row gap-2 mt-4">
+                {/* Highlight, Shadow, and Complementary buttons */}
+                <div className="flex flex-col gap-2 mt-4">
+                  <div className="flex flex-row gap-2">
+                    <button
+                      onClick={findHighlightColor}
+                      disabled={loading || highlightColor === null || !currentColor}
+                      className={`flex-1 font-medium py-2 rounded-lg transition-colors duration-200 border ${
+                        !currentColor ? 
+                        'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-300' :
+                        highlightColor === null ? 
+                        'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-300' : 
+                        highlightColor === undefined ? 
+                        'bg-sky-100 hover:bg-sky-200 text-sky-800 border-sky-300' : ''
+                      }`}
+                      style={highlightColor && highlightColor !== null ? {
+                        backgroundColor: highlightColor.colorHex,
+                        color: getContrastingTextColor(highlightColor.colorHex),
+                        borderColor: 'rgba(0,0,0,0.2)'
+                      } : {}}
+                    >
+                      {!currentColor ? 'Select a color first' : highlightColor === null ? 'Not Found' : highlightColor ? `${highlightColor.colorName} - ${highlightColor.markerNumber} - Highlight` : 'Pick Highlight'}
+                    </button>
+                    <button
+                      onClick={findShadowColor}
+                      disabled={loading || shadowColor === null || !currentColor}
+                      className={`flex-1 font-medium py-2 rounded-lg transition-colors duration-200 border ${
+                        !currentColor ? 
+                        'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-300' :
+                        shadowColor === null ? 
+                        'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-300' : 
+                        shadowColor === undefined ? 
+                        'bg-slate-700 hover:bg-slate-800 text-white' : ''
+                      }`}
+                      style={shadowColor && shadowColor !== null ? {
+                        backgroundColor: shadowColor.colorHex,
+                        color: getContrastingTextColor(shadowColor.colorHex),
+                        borderColor: 'rgba(0,0,0,0.2)'
+                      } : {}}
+                    >
+                      {!currentColor ? 'Select a color first' : shadowColor === null ? 'Not Found' : shadowColor ? `${shadowColor.colorName} - ${shadowColor.markerNumber} - Shadow` : 'Pick Shadow'}
+                    </button>
+                  </div>
                   <button
-                    onClick={findHighlightColor}
-                    disabled={loading || highlightColor === null || !currentColor}
-                    className={`flex-1 font-medium py-2 rounded-lg transition-colors duration-200 border ${
+                    onClick={findComplementaryColor}
+                    disabled={loading || complementaryColor === null || !currentColor}
+                    className={`w-full font-medium py-2 rounded-lg transition-colors duration-200 border ${
                       !currentColor ? 
                       'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-300' :
-                      highlightColor === null ? 
+                      complementaryColor === null ? 
                       'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-300' : 
-                      highlightColor === undefined ? 
-                      'bg-sky-100 hover:bg-sky-200 text-sky-800 border-sky-300' : ''
+                      complementaryColor === undefined ? 
+                      'bg-purple-100 hover:bg-purple-200 text-purple-800 border-purple-300' : ''
                     }`}
-                    style={highlightColor && highlightColor !== null ? {
-                      backgroundColor: highlightColor.colorHex,
-                      color: getContrastingTextColor(highlightColor.colorHex),
+                    style={complementaryColor && complementaryColor !== null ? {
+                      backgroundColor: complementaryColor.colorHex,
+                      color: getContrastingTextColor(complementaryColor.colorHex),
                       borderColor: 'rgba(0,0,0,0.2)'
                     } : {}}
                   >
-                    {!currentColor ? 'Select a color first' : highlightColor === null ? 'Not Found' : highlightColor ? `${highlightColor.colorName} - ${highlightColor.markerNumber} - Highlight` : 'Pick Highlight'}
-                  </button>
-                  <button
-                    onClick={findShadowColor}
-                    disabled={loading || shadowColor === null || !currentColor}
-                    className={`flex-1 font-medium py-2 rounded-lg transition-colors duration-200 border ${
-                      !currentColor ? 
-                      'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-300' :
-                      shadowColor === null ? 
-                      'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-300' : 
-                      shadowColor === undefined ? 
-                      'bg-slate-700 hover:bg-slate-800 text-white' : ''
-                    }`}
-                    style={shadowColor && shadowColor !== null ? {
-                      backgroundColor: shadowColor.colorHex,
-                      color: getContrastingTextColor(shadowColor.colorHex),
-                      borderColor: 'rgba(0,0,0,0.2)'
-                    } : {}}
-                  >
-                    {!currentColor ? 'Select a color first' : shadowColor === null ? 'Not Found' : shadowColor ? `${shadowColor.colorName} - ${shadowColor.markerNumber} - Shadow` : 'Pick Shadow'}
+                    {!currentColor ? 'Select a color first' : complementaryColor === null ? 'No Complementary Found' : complementaryColor ? `${complementaryColor.colorName} - ${complementaryColor.markerNumber} - Complementary` : 'Pick Complementary Color'}
                   </button>
                 </div>
               </motion.div>
