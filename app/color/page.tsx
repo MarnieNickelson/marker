@@ -398,6 +398,8 @@ export default function ColorPage() {
   const [highlightColor, setHighlightColor] = useState<Marker | null | undefined>(undefined);
   const [shadowColor, setShadowColor] = useState<Marker | null | undefined>(undefined);
   const [complementaryColor, setComplementaryColor] = useState<Marker | null | undefined>(undefined);
+  const [triadColor1, setTriadColor1] = useState<Marker | null | undefined>(undefined);
+  const [triadColor2, setTriadColor2] = useState<Marker | null | undefined>(undefined);
   
   // Updates highlight and shadow color suggestions when current color changes
   useEffect(() => {
@@ -405,10 +407,13 @@ export default function ColorPage() {
       findHighlightOptions();
       findShadowOptions();
       findComplementaryOptions();
+      findTriadOptions();
     } else {
       setHighlightColor(undefined);
       setShadowColor(undefined);
       setComplementaryColor(undefined);
+      setTriadColor1(undefined);
+      setTriadColor2(undefined);
     }
   }, [currentColor]);
   
@@ -790,6 +795,106 @@ export default function ColorPage() {
     }
   };
 
+  // Find potential triad colors without selecting them
+  const findTriadOptions = async () => {
+    if (!currentColor) return;
+
+    try {
+      const { h, s, l } = hexToHSL(currentColor.colorHex);
+      
+      // Get all markers with grid information
+      const markers = await fetchWithAuth<Marker[]>('/api/markers?includeGrid=true');
+      
+      if (!markers || markers.length === 0) {
+        return;
+      }
+      
+      // Calculate triad hues (120 degrees apart on color wheel)
+      const triadHue1 = (h + 120) % 360;
+      const triadHue2 = (h + 240) % 360;
+      
+      // Calculate HSL for all markers and find ones with similar hue to triad1
+      const suitableTriads1 = markers
+        .map(marker => {
+          const hsl = hexToHSL(marker.colorHex);
+          // Calculate hue distance to the triad hue
+          const hueDiff = Math.min(
+            Math.abs(hsl.h - triadHue1),
+            360 - Math.abs(hsl.h - triadHue1)
+          );
+          
+          // Calculate a score based on triad hue similarity
+          // Lower score is better
+          let score = hueDiff * 2; // Give more weight to hue match
+          
+          // We want colors with similar saturation and lightness as the original
+          // Penalize colors with very different saturation
+          score += Math.abs(hsl.s - s) * 40;
+          
+          // Penalize colors with very different lightness
+          score += Math.abs(hsl.l - l) * 40;
+          
+          // Hard cutoff for hue difference to keep close to triad
+          // If hue differs by more than 30 degrees from triad, heavily penalize
+          if (hueDiff > 30) {
+            score += 2000;
+          }
+          
+          return { marker, score };
+        })
+        .filter(item => item.score < 1000) // Only consider valid triad colors
+        .sort((a, b) => a.score - b.score); // Sort by lowest score
+      
+      // Calculate HSL for all markers and find ones with similar hue to triad2
+      const suitableTriads2 = markers
+        .map(marker => {
+          const hsl = hexToHSL(marker.colorHex);
+          // Calculate hue distance to the triad hue
+          const hueDiff = Math.min(
+            Math.abs(hsl.h - triadHue2),
+            360 - Math.abs(hsl.h - triadHue2)
+          );
+          
+          // Calculate a score based on triad hue similarity
+          // Lower score is better
+          let score = hueDiff * 2; // Give more weight to hue match
+          
+          // We want colors with similar saturation and lightness as the original
+          // Penalize colors with very different saturation
+          score += Math.abs(hsl.s - s) * 40;
+          
+          // Penalize colors with very different lightness
+          score += Math.abs(hsl.l - l) * 40;
+          
+          // Hard cutoff for hue difference to keep close to triad
+          // If hue differs by more than 30 degrees from triad, heavily penalize
+          if (hueDiff > 30) {
+            score += 2000;
+          }
+          
+          return { marker, score };
+        })
+        .filter(item => item.score < 1000) // Only consider valid triad colors
+        .sort((a, b) => a.score - b.score); // Sort by lowest score
+      
+      if (suitableTriads1.length > 0) {
+        setTriadColor1(suitableTriads1[0].marker);
+      } else {
+        // No suitable triad1 found
+        setTriadColor1(null);
+      }
+      
+      if (suitableTriads2.length > 0) {
+        setTriadColor2(suitableTriads2[0].marker);
+      } else {
+        // No suitable triad2 found
+        setTriadColor2(null);
+      }
+    } catch (error) {
+      console.error('Error finding triad options:', error);
+    }
+  };
+
   // Find a complementary color for the current color
   const findComplementaryColor = async () => {
     if (!currentColor) {
@@ -822,12 +927,100 @@ export default function ColorPage() {
         toast.success(`Complementary color: ${complementaryColor.colorName}`);
         return;
       } else {
-        // No suitable complementary found
+        // No suitable complementary found in the same hue family
         toast.error("No suitable complementary color found in your inventory");
         return;
       }
     } catch (error) {
       toast.error('Failed to find complementary color');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Find and add first triad color to history
+  const findTriadColor1 = async () => {
+    if (!currentColor) {
+      toast.error("Select a color first before finding a triad color");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      if (triadColor1) {
+        // If gridId exists, load the complete marker with grid info
+        if (triadColor1.gridId) {
+          try {
+            // Get the complete marker data with grid information
+            const completeMarker = await fetchWithAuth<Marker>(`/api/markers/${triadColor1.id}?includeGrid=true`);
+            if (completeMarker) {
+              addMarkerToHistory(completeMarker, false);
+              toast.success(`Triad color 1: ${completeMarker.colorName}`);
+              return;
+            }
+          } catch (error) {
+            console.error("Error fetching complete marker:", error);
+            // Fall back to using existing triadColor1 if fetch fails
+          }
+        }
+        
+        // Use the pre-calculated triad color if no gridId or if fetch failed
+        addMarkerToHistory(triadColor1, false);
+        toast.success(`Triad color 1: ${triadColor1.colorName}`);
+        return;
+      } else {
+        // No suitable triad found in the same hue family
+        toast.error("No suitable triad color 1 found in your inventory");
+        return;
+      }
+    } catch (error) {
+      toast.error('Failed to find triad color 1');
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Find and add second triad color to history
+  const findTriadColor2 = async () => {
+    if (!currentColor) {
+      toast.error("Select a color first before finding a triad color");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      if (triadColor2) {
+        // If gridId exists, load the complete marker with grid info
+        if (triadColor2.gridId) {
+          try {
+            // Get the complete marker data with grid information
+            const completeMarker = await fetchWithAuth<Marker>(`/api/markers/${triadColor2.id}?includeGrid=true`);
+            if (completeMarker) {
+              addMarkerToHistory(completeMarker, false);
+              toast.success(`Triad color 2: ${completeMarker.colorName}`);
+              return;
+            }
+          } catch (error) {
+            console.error("Error fetching complete marker:", error);
+            // Fall back to using existing triadColor2 if fetch fails
+          }
+        }
+        
+        // Use the pre-calculated triad color if no gridId or if fetch failed
+        addMarkerToHistory(triadColor2, false);
+        toast.success(`Triad color 2: ${triadColor2.colorName}`);
+        return;
+      } else {
+        // No suitable triad found in the same hue family
+        toast.error("No suitable triad color 2 found in your inventory");
+        return;
+      }
+    } catch (error) {
+      toast.error('Failed to find triad color 2');
       console.error(error);
     } finally {
       setLoading(false);
@@ -1102,7 +1295,7 @@ export default function ColorPage() {
                   </div>
                 </div>
                 
-                {/* Highlight, Shadow, and Complementary buttons */}
+                {/* Highlight, Shadow, Complementary, and Triad buttons */}
                 <div className="flex flex-col gap-2 mt-4">
                   <div className="flex flex-row gap-2">
                     <button
@@ -1163,6 +1356,47 @@ export default function ColorPage() {
                   >
                     {!currentColor ? 'Select a color first' : complementaryColor === null ? 'No Complementary Found' : complementaryColor ? `${complementaryColor.colorName} - ${complementaryColor.markerNumber} - Complementary` : 'Pick Complementary Color'}
                   </button>
+                  
+                  <div className="flex flex-row gap-2 mt-2">
+                    <button
+                      onClick={findTriadColor1}
+                      disabled={loading || triadColor1 === null || !currentColor}
+                      className={`flex-1 font-medium py-2 rounded-lg transition-colors duration-200 border ${
+                        !currentColor ? 
+                        'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-300' :
+                        triadColor1 === null ? 
+                        'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-300' : 
+                        triadColor1 === undefined ? 
+                        'bg-teal-100 hover:bg-teal-200 text-teal-800 border-teal-300' : ''
+                      }`}
+                      style={triadColor1 && triadColor1 !== null ? {
+                        backgroundColor: triadColor1.colorHex,
+                        color: getContrastingTextColor(triadColor1.colorHex),
+                        borderColor: 'rgba(0,0,0,0.2)'
+                      } : {}}
+                    >
+                      {!currentColor ? 'Select a color first' : triadColor1 === null ? 'Not Found' : triadColor1 ? `${triadColor1.colorName} - ${triadColor1.markerNumber} - Triad 1` : 'Pick Triad Color 1'}
+                    </button>
+                    <button
+                      onClick={findTriadColor2}
+                      disabled={loading || triadColor2 === null || !currentColor}
+                      className={`flex-1 font-medium py-2 rounded-lg transition-colors duration-200 border ${
+                        !currentColor ? 
+                        'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-300' :
+                        triadColor2 === null ? 
+                        'bg-gray-100 text-gray-500 cursor-not-allowed border-gray-300' : 
+                        triadColor2 === undefined ? 
+                        'bg-amber-100 hover:bg-amber-200 text-amber-800 border-amber-300' : ''
+                      }`}
+                      style={triadColor2 && triadColor2 !== null ? {
+                        backgroundColor: triadColor2.colorHex,
+                        color: getContrastingTextColor(triadColor2.colorHex),
+                        borderColor: 'rgba(0,0,0,0.2)'
+                      } : {}}
+                    >
+                      {!currentColor ? 'Select a color first' : triadColor2 === null ? 'Not Found' : triadColor2 ? `${triadColor2.colorName} - ${triadColor2.markerNumber} - Triad 2` : 'Pick Triad Color 2'}
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             </AnimatePresence>
